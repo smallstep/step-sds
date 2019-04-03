@@ -20,7 +20,7 @@ after_success:
   not collect coverage reports"
 notifications:
   email: false
-stage: Github Release
+# stage: Github Release
 # deploy:
 #   provider: releases
 #   skip_cleanup: true
