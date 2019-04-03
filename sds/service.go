@@ -101,12 +101,10 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	}
 	token, err := srv.provisioner.Token(subject)
 	if err != nil {
-		log.Println(1, err)
 		return err
 	}
 	cr, err := newCertRnewer(token)
 	if err != nil {
-		log.Println(2, err)
 		return err
 	}
 	defer cr.Stop()
@@ -118,12 +116,10 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	for {
 		dr, err := getDiscoveryResponse(r, cert, roots)
 		if err != nil {
-			log.Println(3, err)
 			return err
 		}
 		err = sds.Send(dr)
 		if err != nil {
-			log.Println(4, err)
 			return err
 		}
 		certs := <-ch
