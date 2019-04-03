@@ -2,10 +2,7 @@ package sds
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"log"
-	"sync"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -35,14 +32,7 @@ var ValidationContextAltName = "validation_context"
 // 	discovery.SecretDiscoveryServiceServer
 // }
 type Service struct {
-	sync.RWMutex
-	versionInfo  string
-	client       *ca.Client
-	provisioner  *ca.Provisioner
-	cert         *tls.Certificate
-	roots        []*x509.Certificate
-	renewCh      chan *certificate
-	certificates sync.Map
+	provisioner *ca.Provisioner
 }
 
 // New creates a new sds.Service that will support multiple TLS certificates. It
@@ -56,20 +46,6 @@ func New(iss, kid, caURL, caRoot string, password []byte) (*Service, error) {
 
 	return &Service{
 		provisioner: p,
-	}, nil
-}
-
-// NewSingleCertService returns a new sds.Service that will only support one TLS
-// certificate that will be signed using the given token.
-func NewSingleCertService(token string) (*Service, error) {
-	cr, err := newCertRnewer(token)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Service{
-		cert:    cr.ServerCertificate(),
-		renewCh: cr.RenewChannel(),
 	}, nil
 }
 

@@ -77,7 +77,7 @@ func failf(format string, a ...interface{}) {
 func main() {
 	var network, address string
 	var certFile, keyFile, rootFile string
-	var token, kid, issuer, passwordFile string
+	var kid, issuer, passwordFile string
 	var caURL, caRoot string
 	var version bool
 	flag.StringVar(&network, "network", "tcp", `The network to listen to ("tcp", "tcp4", "tcp6", "unix" or "unixpacket")`)
@@ -85,7 +85,6 @@ func main() {
 	flag.StringVar(&certFile, "cert", "", "The TLS certificate path")
 	flag.StringVar(&keyFile, "key", "", "The TLS certificate key path")
 	flag.StringVar(&rootFile, "root", "", "The Root CA certificate path")
-	flag.StringVar(&token, "token", "", "The step token to use")
 	flag.StringVar(&kid, "kid", "", "The certificate provisioner kid used to get a certificate")
 	flag.StringVar(&issuer, "issuer", "", "The certificate provisioner issuer used to get a certificate")
 	flag.StringVar(&passwordFile, "password-file", "", "The path to a file with the certificate provisioner password")
@@ -105,10 +104,6 @@ func main() {
 		fail("flag '--network' is required")
 	case address == "":
 		fail("flag '--address' is required")
-	case token == "" && kid == "":
-		fail("flag '--token' or '--kid' are required")
-	case token != "" && kid != "":
-		fail("flag '--token' and '--kid' are mutually exclusive")
 	case kid != "" && issuer == "":
 		fail("flag '--kid' requires the '--issuer' flag")
 	case kid != "" && caURL == "" && caRoot == "":
@@ -182,17 +177,9 @@ func main() {
 		fail(err)
 	}
 
-	var s *sds.Service
-	if token != "" {
-		s, err = sds.NewSingleCertService(token)
-		if err != nil {
-			fail(err)
-		}
-	} else {
-		s, err = sds.New(issuer, kid, caURL, caRoot, password)
-		if err != nil {
-			fail(err)
-		}
+	s, err := sds.New(issuer, kid, caURL, caRoot, password)
+	if err != nil {
+		fail(err)
 	}
 
 	srv := grpc.NewServer(opts...)
