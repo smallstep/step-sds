@@ -123,7 +123,7 @@ func main() {
 				fail(err)
 			}
 		} else {
-			b, err := ioutil.ReadFile(rootFile)
+			b, err := ioutil.ReadFile(passwordFile)
 			if err != nil {
 				fail(err)
 			}
