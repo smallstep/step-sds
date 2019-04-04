@@ -3,6 +3,7 @@ package sds
 import (
 	"context"
 	"log"
+	"time"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -24,6 +25,9 @@ var ValidationContextName = "trusted_ca"
 // ValidationContextAltName is an alternative name used as a resource name for
 // the validation context.
 var ValidationContextAltName = "validation_context"
+
+// ValidationContextRenewPeriod is the default period to check for new roots.
+var ValidationContextRenewPeriod = 8 * time.Hour
 
 // Service is the interface that an Envoy secret discovery service (SDS) has to
 // implement. They server TLS certificates to Envoy using gRPC.
@@ -62,32 +66,42 @@ func (srv *Service) Register(s *grpc.Server) {
 // StreamSecrets implements the gRPC SecretDiscoveryService service and returns
 // a stream of TLS certificates.
 func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSecretsServer) (err error) {
+	var rnw renewer
+
 	r, err := sds.Recv()
 	if err != nil {
 		return err
 	}
-
 	log.Println("StreamSecrets: ", r.String())
 
 	subject, ok := getSubject(r)
-	if !ok {
-		// FIXME: trusted ca flow
-		subject = r.ResourceNames[0]
-		// return errors.Errorf("DiscoveryRequest does not contain a valid subject: %s", r.String())
+	if ok {
+		token, err := srv.provisioner.Token(subject)
+		if err != nil {
+			return err
+		}
+		cr, err := newCertRnewer(token)
+		if err != nil {
+			return err
+		}
+		defer cr.Stop()
+		rnw = cr
+	} else {
+		token, err := srv.provisioner.Token("fake-root-subject")
+		if err != nil {
+			return err
+		}
+		rr, err := newRootRnewer(token)
+		if err != nil {
+			return err
+		}
+		defer rr.Stop()
+		rnw = rr
 	}
-	token, err := srv.provisioner.Token(subject)
-	if err != nil {
-		return err
-	}
-	cr, err := newCertRnewer(token)
-	if err != nil {
-		return err
-	}
-	defer cr.Stop()
 
-	ch := cr.RenewChannel()
-	cert := cr.ServerCertificate()
-	roots := cr.RootCertificates()
+	ch := rnw.RenewChannel()
+	cert := rnw.ServerCertificate()
+	roots := rnw.RootCertificates()
 
 	for {
 		dr, err := getDiscoveryResponse(r, cert, roots)

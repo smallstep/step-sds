@@ -79,9 +79,9 @@ func getTrustedCA(name string, roots []*x509.Certificate) ([]byte, error) {
 	}
 	secret := auth.Secret{
 		Name: name,
-		Type: &auth.Secret_TlsCertificate{
-			TlsCertificate: &auth.TlsCertificate{
-				CertificateChain: &core.DataSource{
+		Type: &auth.Secret_ValidationContext{
+			ValidationContext: &auth.CertificateValidationContext{
+				TrustedCa: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{InlineBytes: chain.Bytes()},
 				},
 			},
