@@ -37,6 +37,7 @@ var ValidationContextRenewPeriod = 8 * time.Hour
 // }
 type Service struct {
 	provisioner *ca.Provisioner
+	stopCh      chan struct{}
 }
 
 // New creates a new sds.Service that will support multiple TLS certificates. It
@@ -50,11 +51,13 @@ func New(iss, kid, caURL, caRoot string, password []byte) (*Service, error) {
 
 	return &Service{
 		provisioner: p,
+		stopCh:      make(chan struct{}),
 	}, nil
 }
 
 // Stop stops the current service.
 func (srv *Service) Stop() error {
+	close(srv.stopCh)
 	return nil
 }
 
@@ -112,8 +115,13 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		if err != nil {
 			return err
 		}
-		certs := <-ch
-		cert, roots = certs.Server, certs.Roots
+
+		select {
+		case certs := <-ch:
+			cert, roots = certs.Server, certs.Roots
+		case <-srv.stopCh:
+			return nil
+		}
 	}
 }
 
