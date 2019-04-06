@@ -77,6 +77,7 @@ func failf(format string, a ...interface{}) {
 func main() {
 	var network, address string
 	var certFile, keyFile, rootFile string
+	var authorizedIdentity, authorizedFingerprint string
 	var kid, issuer, passwordFile string
 	var caURL, caRoot string
 	var version bool
@@ -85,6 +86,8 @@ func main() {
 	flag.StringVar(&certFile, "cert", "", "The TLS certificate path")
 	flag.StringVar(&keyFile, "key", "", "The TLS certificate key path")
 	flag.StringVar(&rootFile, "root", "", "The Root CA certificate path")
+	flag.StringVar(&authorizedIdentity, "authorized-identity", "", "The identity of an authorized SDS client (e.g. envoy.smallstep.com)")
+	flag.StringVar(&authorizedFingerprint, "authorized-fingerprint", "", "The fingerprint of the SDS client certificate")
 	flag.StringVar(&kid, "kid", "", "The certificate provisioner kid used to get a certificate")
 	flag.StringVar(&issuer, "issuer", "", "The certificate provisioner issuer used to get a certificate")
 	flag.StringVar(&passwordFile, "password-file", "", "The path to a file with the certificate provisioner password")
@@ -145,6 +148,18 @@ func main() {
 		failf("flag '--key' is required with a '%s' address", network)
 	}
 
+	config := sds.Config{
+		AuthorizedIdentity:    authorizedIdentity,
+		AuthorizedFingerprint: authorizedFingerprint,
+		Provisioner: sds.ProvisionerConfig{
+			Issuer:   issuer,
+			KeyID:    kid,
+			Password: string(password),
+			CaURL:    caURL,
+			CaRoot:   caRoot,
+		},
+	}
+
 	// Start gRPC server
 	var opts []grpc.ServerOption
 	if tcp {
@@ -177,7 +192,7 @@ func main() {
 		fail(err)
 	}
 
-	s, err := sds.New(issuer, kid, caURL, caRoot, password)
+	s, err := sds.New(config)
 	if err != nil {
 		fail(err)
 	}

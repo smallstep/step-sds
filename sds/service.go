@@ -2,14 +2,21 @@ package sds
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
+	"strings"
 	"time"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/ca"
+	"github.com/smallstep/cli/crypto/x509util"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 // VersionInfo is the version sent to the Envoy server in the discovery
@@ -36,22 +43,45 @@ var ValidationContextRenewPeriod = 8 * time.Hour
 // 	discovery.SecretDiscoveryServiceServer
 // }
 type Service struct {
-	provisioner *ca.Provisioner
-	stopCh      chan struct{}
+	provisioner           *ca.Provisioner
+	stopCh                chan struct{}
+	authorizedIdentity    string
+	authorizedFingerprint string
+}
+
+// Config is the configuration used to initialize the SDS Service.
+type Config struct {
+	AuthorizedIdentity    string            `json:"authorizedIdentity"`
+	AuthorizedFingerprint string            `json:"authorizedFingerprint"`
+	Provisioner           ProvisionerConfig `json:"provisioner"`
+}
+
+// ProvisionerConfig is the configuration used to initialize the provisioner.
+type ProvisionerConfig struct {
+	Issuer   string `json:"iss"`
+	KeyID    string `json:"kid"`
+	Password string `json:"password,omitempty"`
+	CaURL    string `json:"ca-url"`
+	CaRoot   string `json:"root"`
 }
 
 // New creates a new sds.Service that will support multiple TLS certificates. It
 // will use the given CA provisioner to generate the CA tokens used to sign
 // certificates.
-func New(iss, kid, caURL, caRoot string, password []byte) (*Service, error) {
-	p, err := ca.NewProvisioner(iss, kid, caURL, caRoot, password)
+func New(c Config) (*Service, error) {
+	p, err := ca.NewProvisioner(
+		c.Provisioner.Issuer, c.Provisioner.KeyID,
+		c.Provisioner.CaURL, c.Provisioner.CaRoot,
+		[]byte(c.Provisioner.Password))
 	if err != nil {
 		return nil, err
 	}
 
 	return &Service{
-		provisioner: p,
-		stopCh:      make(chan struct{}),
+		provisioner:           p,
+		stopCh:                make(chan struct{}),
+		authorizedIdentity:    c.AuthorizedIdentity,
+		authorizedFingerprint: c.AuthorizedFingerprint,
 	}, nil
 }
 
@@ -76,6 +106,10 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		return err
 	}
 	log.Println("StreamSecrets: ", r.String())
+
+	if err := srv.validateRequest(sds.Context(), r); err != nil {
+		return err
+	}
 
 	subject, ok := getSubject(r)
 	if ok {
@@ -128,6 +162,9 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 // FetchSecrets implements gRPC SecretDiscoveryService service and returns one TLS certificate.
 func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
 	log.Println("FetchSecrets: ", r.String())
+	if err := srv.validateRequest(ctx, r); err != nil {
+		return nil, err
+	}
 
 	subject, ok := getSubject(r)
 	if !ok {
@@ -146,4 +183,41 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 	cert := cr.ServerCertificate()
 	roots := cr.RootCertificates()
 	return getDiscoveryResponse(r, cert, roots)
+}
+
+func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest) error {
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return status.Errorf(codes.Internal, "failed to obtain peer for request")
+	}
+
+	var cs *tls.ConnectionState
+	switch tlsInfo := p.AuthInfo.(type) {
+	case credentials.TLSInfo:
+		cs = &tlsInfo.State
+	case *credentials.TLSInfo:
+		cs = &tlsInfo.State
+	default:
+		return status.Errorf(codes.Internal, "failed to obtain connection state for request")
+	}
+
+	if len(cs.PeerCertificates) == 0 {
+		return status.Errorf(codes.PermissionDenied, "missing peer certificate")
+	}
+
+	if srv.authorizedIdentity != "" {
+		cn := cs.PeerCertificates[0].Subject.CommonName
+		if !strings.EqualFold(cn, srv.authorizedIdentity) {
+			return status.Errorf(codes.PermissionDenied, "certificate common name %s is not authorized", cn)
+		}
+	}
+
+	if srv.authorizedFingerprint != "" {
+		fp := x509util.Fingerprint(cs.PeerCertificates[0])
+		if !strings.EqualFold(fp, srv.authorizedFingerprint) {
+			return status.Errorf(codes.PermissionDenied, "certificate fingerprint %s is not authorized", fp)
+		}
+	}
+
+	return nil
 }
