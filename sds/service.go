@@ -21,10 +21,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// VersionInfo is the version sent to the Envoy server in the discovery
-// responses.
-var VersionInfo = "0.0.1"
-
 // Identifier is the identifier of the secret discovery service.
 var Identifier = "Smallstep SDS/0000000-dev"
 
@@ -124,16 +120,26 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	var cert *tls.Certificate
 	var roots []*x509.Certificate
 	var ch chan *certificate
-	var nonce string
+	var nonce, versionInfo string
 	var req *api.DiscoveryRequest
 
 	for {
 		select {
 		case r := <-reqCh:
-			if nonce != "" && nonce == r.ResponseNonce {
+			log.Println("StreamSecrets: ", r.String())
+			// Validations
+			switch {
+			case r.ErrorDetail != nil:
+				log.Printf("ErrorDetail received: %v\n", r.ErrorDetail)
+				continue
+			case nonce != r.ResponseNonce:
+				log.Printf("ResponseNonce unexpected, wants %s, got %s\n", nonce, r.ResponseNonce)
+				continue
+			case r.VersionInfo == "": // initial request
+				versionInfo = srv.versionInfo()
+			case r.VersionInfo == versionInfo: // ACK
 				continue
 			}
-			log.Println("StreamSecrets: ", r.String())
 
 			req = r
 			subject, ok := getSubject(req)
@@ -165,6 +171,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			cert = rnw.ServerCertificate()
 			roots = rnw.RootCertificates()
 		case certs := <-ch:
+			versionInfo = srv.versionInfo()
 			cert, roots = certs.Server, certs.Roots
 		case err := <-errCh:
 			if err == io.EOF {
@@ -176,7 +183,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		}
 
 		// Send certificates
-		dr, err := getDiscoveryResponse(req, cert, roots)
+		dr, err := getDiscoveryResponse(req, versionInfo, cert, roots)
 		if err != nil {
 			return err
 		}
@@ -199,6 +206,7 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 		return nil, errors.Errorf("DiscoveryRequest does not contain a valid subject: %s", r.String())
 	}
 
+	versionInfo := time.Now().UTC().Format(time.RFC3339)
 	token, err := srv.provisioner.Token(subject)
 	if err != nil {
 		return nil, err
@@ -208,9 +216,10 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 		return nil, err
 	}
 	defer cr.Stop()
+
 	cert := cr.ServerCertificate()
 	roots := cr.RootCertificates()
-	return getDiscoveryResponse(r, cert, roots)
+	return getDiscoveryResponse(r, versionInfo, cert, roots)
 }
 
 func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest) error {
@@ -248,4 +257,8 @@ func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest
 	}
 
 	return nil
+}
+
+func (srv *Service) versionInfo() string {
+	return time.Now().UTC().Format(time.RFC3339)
 }

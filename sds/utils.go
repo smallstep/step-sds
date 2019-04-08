@@ -34,7 +34,7 @@ func getSubject(r *api.DiscoveryRequest) (string, bool) {
 }
 
 // getDiscoveryResponse returns the api.DiscoveryResponse for the given request.
-func getDiscoveryResponse(r *api.DiscoveryRequest, cert *tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
+func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, cert *tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
 	nonce, err := randutil.Hex(64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating nonce")
@@ -58,7 +58,7 @@ func getDiscoveryResponse(r *api.DiscoveryRequest, cert *tls.Certificate, roots 
 	}
 
 	return &api.DiscoveryResponse{
-		VersionInfo: VersionInfo,
+		VersionInfo: versionInfo,
 		Resources:   resources,
 		Canary:      false,
 		TypeUrl:     secretTypeURL,

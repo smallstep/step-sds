@@ -30,10 +30,8 @@ var (
 
 func init() {
 	if Version == "N/A" {
-		sds.VersionInfo = "0000000-dev"
 		sds.Identifier = "Smallstep SDS/0000000-dev"
 	} else {
-		sds.VersionInfo = Version
 		sds.Identifier = fmt.Sprintf("Smallstep SDS/%s", Version)
 	}
 }
