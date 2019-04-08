@@ -3,6 +3,8 @@ package sds
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"io"
 	"log"
 	"strings"
 	"time"
@@ -101,60 +103,86 @@ func (srv *Service) Register(s *grpc.Server) {
 func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSecretsServer) (err error) {
 	var rnw renewer
 
-	r, err := sds.Recv()
-	if err != nil {
-		return err
-	}
-	log.Println("StreamSecrets: ", r.String())
+	errCh := make(chan error)
+	reqCh := make(chan *api.DiscoveryRequest)
 
-	if err := srv.validateRequest(sds.Context(), r); err != nil {
-		return err
-	}
+	go func() {
+		for {
+			r, err := sds.Recv()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if err := srv.validateRequest(sds.Context(), r); err != nil {
+				errCh <- err
+				return
+			}
+			reqCh <- r
+		}
+	}()
 
-	subject, ok := getSubject(r)
-	if ok {
-		token, err := srv.provisioner.Token(subject)
-		if err != nil {
-			return err
-		}
-		cr, err := newCertRnewer(token)
-		if err != nil {
-			return err
-		}
-		defer cr.Stop()
-		rnw = cr
-	} else {
-		token, err := srv.provisioner.Token("fake-root-subject")
-		if err != nil {
-			return err
-		}
-		rr, err := newRootRnewer(token)
-		if err != nil {
-			return err
-		}
-		defer rr.Stop()
-		rnw = rr
-	}
-
-	ch := rnw.RenewChannel()
-	cert := rnw.ServerCertificate()
-	roots := rnw.RootCertificates()
+	var cert *tls.Certificate
+	var roots []*x509.Certificate
+	var ch chan *certificate
+	var nonce string
+	var req *api.DiscoveryRequest
 
 	for {
-		dr, err := getDiscoveryResponse(r, cert, roots)
-		if err != nil {
-			return err
-		}
-		err = sds.Send(dr)
-		if err != nil {
-			return err
-		}
-
 		select {
+		case r := <-reqCh:
+			if nonce != "" && nonce == r.ResponseNonce {
+				continue
+			}
+			log.Println("StreamSecrets: ", r.String())
+
+			req = r
+			subject, ok := getSubject(req)
+			if ok {
+				token, err := srv.provisioner.Token(subject)
+				if err != nil {
+					return err
+				}
+				cr, err := newCertRnewer(token)
+				if err != nil {
+					return err
+				}
+				defer cr.Stop()
+				rnw = cr
+			} else {
+				token, err := srv.provisioner.Token("fake-root-subject")
+				if err != nil {
+					return err
+				}
+				rr, err := newRootRnewer(token)
+				if err != nil {
+					return err
+				}
+				defer rr.Stop()
+				rnw = rr
+			}
+
+			ch = rnw.RenewChannel()
+			cert = rnw.ServerCertificate()
+			roots = rnw.RootCertificates()
 		case certs := <-ch:
 			cert, roots = certs.Server, certs.Roots
+		case err := <-errCh:
+			if err == io.EOF {
+				return nil
+			}
+			return err
 		case <-srv.stopCh:
 			return nil
+		}
+
+		// Send certificates
+		dr, err := getDiscoveryResponse(req, cert, roots)
+		if err != nil {
+			return err
+		}
+		nonce = dr.Nonce
+		if err := sds.Send(dr); err != nil {
+			return err
 		}
 	}
 }
