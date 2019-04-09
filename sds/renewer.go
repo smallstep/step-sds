@@ -80,7 +80,6 @@ func newCertRnewer(token string) (*certRenewer, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("certificated renewed: notBefore: %s, notAfter:%s\n", cert.Leaf.NotBefore.String(), cert.Leaf.NotAfter.String())
 		if resp, err := client.Roots(); err != nil {
 			log.Println(err)
 		} else {
