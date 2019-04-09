@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -14,9 +15,11 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/smallstep/certificates/ca"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 
+	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/cli/ui"
+	"github.com/smallstep/step-sds/logging"
 	"github.com/smallstep/step-sds/sds"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -156,10 +159,20 @@ func main() {
 			CaURL:    caURL,
 			CaRoot:   caRoot,
 		},
+		Logger: json.RawMessage("{}"),
+	}
+
+	logger, err := logging.New("step-sds", config.Logger)
+	if err != nil {
+		failf("error initializing logger: %v", err)
 	}
 
 	// Start gRPC server
-	var opts []grpc.ServerOption
+	opts := []grpc.ServerOption{
+		grpc_middleware.WithUnaryServerChain(logging.UnaryServerInterceptor(logger)),
+		grpc_middleware.WithStreamServerChain(logging.StreamServerInterceptor(logger)),
+	}
+
 	if tcp {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
@@ -199,7 +212,7 @@ func main() {
 	s.Register(srv)
 	go ca.StopHandler(&stopper{srv: srv, sds: s})
 
-	log.Printf("Serving at %s://%s ...", network, address)
+	log.Printf("Serving at %s://%s ...", network, lis.Addr())
 	if err := srv.Serve(lis); err != nil {
 		log.Fatal(err)
 	}

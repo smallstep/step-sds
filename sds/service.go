@@ -4,8 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/cli/crypto/x509util"
+	"github.com/smallstep/step-sds/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -45,6 +47,7 @@ type Service struct {
 	stopCh                chan struct{}
 	authorizedIdentity    string
 	authorizedFingerprint string
+	logger                *logging.Logger
 }
 
 // Config is the configuration used to initialize the SDS Service.
@@ -52,6 +55,7 @@ type Config struct {
 	AuthorizedIdentity    string            `json:"authorizedIdentity"`
 	AuthorizedFingerprint string            `json:"authorizedFingerprint"`
 	Provisioner           ProvisionerConfig `json:"provisioner"`
+	Logger                json.RawMessage
 }
 
 // ProvisionerConfig is the configuration used to initialize the provisioner.
@@ -75,11 +79,17 @@ func New(c Config) (*Service, error) {
 		return nil, err
 	}
 
+	logger, err := logging.New("step-sds", c.Logger)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		provisioner:           p,
 		stopCh:                make(chan struct{}),
 		authorizedIdentity:    c.AuthorizedIdentity,
 		authorizedFingerprint: c.AuthorizedFingerprint,
+		logger:                logger,
 	}, nil
 }
 
@@ -99,6 +109,7 @@ func (srv *Service) Register(s *grpc.Server) {
 func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSecretsServer) (err error) {
 	var rnw renewer
 
+	ctx := sds.Context()
 	errCh := make(chan error)
 	reqCh := make(chan *api.DiscoveryRequest)
 
@@ -117,6 +128,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		}
 	}()
 
+	var t1 time.Time
 	var cert *tls.Certificate
 	var roots []*x509.Certificate
 	var ch chan *certificate
@@ -126,19 +138,28 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	for {
 		select {
 		case r := <-reqCh:
-			log.Println("StreamSecrets: ", r.String())
+			t1 = time.Now()
 			// Validations
-			switch {
-			case r.ErrorDetail != nil:
-				log.Printf("ErrorDetail received: %v\n", r.ErrorDetail)
+			if r.ErrorDetail != nil {
+				srv.logRequest(ctx, r, "NACK", t1, nil)
 				continue
-			case nonce != r.ResponseNonce:
-				log.Printf("ResponseNonce unexpected, wants %s, got %s\n", nonce, r.ResponseNonce)
-				continue
-			case r.VersionInfo == "": // initial request
+			}
+			// Do not validate nonce/version if we're restarting the server
+			if req != nil {
+				switch {
+				case nonce != r.ResponseNonce:
+					srv.logRequest(ctx, r, "Invalid responseNonce", t1, fmt.Errorf("invalid responseNonce"))
+					continue
+				case r.VersionInfo == "": // initial request
+					versionInfo = srv.versionInfo()
+				case r.VersionInfo == versionInfo: // ACK
+					srv.logRequest(ctx, r, "ACK", t1, nil)
+					continue
+				default: // it should not go here
+					versionInfo = srv.versionInfo()
+				}
+			} else {
 				versionInfo = srv.versionInfo()
-			case r.VersionInfo == versionInfo: // ACK
-				continue
 			}
 
 			req = r
@@ -146,10 +167,12 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			if ok {
 				token, err := srv.provisioner.Token(subject)
 				if err != nil {
+					srv.logRequest(ctx, r, "Error generating token", t1, err)
 					return err
 				}
 				cr, err := newCertRnewer(token)
 				if err != nil {
+					srv.logRequest(ctx, r, "Error creating renewer", t1, err)
 					return err
 				}
 				defer cr.Stop()
@@ -157,10 +180,12 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			} else {
 				token, err := srv.provisioner.Token("fake-root-subject")
 				if err != nil {
+					srv.logRequest(ctx, r, "Error generating token", t1, err)
 					return err
 				}
 				rr, err := newRootRnewer(token)
 				if err != nil {
+					srv.logRequest(ctx, r, "Error creating renewer", t1, err)
 					return err
 				}
 				defer rr.Stop()
@@ -171,12 +196,15 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			cert = rnw.ServerCertificate()
 			roots = rnw.RootCertificates()
 		case certs := <-ch:
+			t1 = time.Now()
 			versionInfo = srv.versionInfo()
 			cert, roots = certs.Server, certs.Roots
 		case err := <-errCh:
+			t1 = time.Now()
 			if err == io.EOF {
 				return nil
 			}
+			srv.logRequest(ctx, nil, "Recv failed", t1, err)
 			return err
 		case <-srv.stopCh:
 			return nil
@@ -185,18 +213,30 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		// Send certificates
 		dr, err := getDiscoveryResponse(req, versionInfo, cert, roots)
 		if err != nil {
+			srv.logRequest(ctx, req, "Creation of DiscoveryResponse failed", t1, err)
 			return err
 		}
-		nonce = dr.Nonce
 		if err := sds.Send(dr); err != nil {
+			srv.logRequest(ctx, req, "Send failed", t1, err)
 			return err
+		}
+
+		nonce = dr.Nonce
+		extra := logging.Fields{
+			"nonce": nonce,
+		}
+
+		if cert != nil {
+			srv.logRequest(ctx, req, "Certificate sent", t1, err, extra)
+		} else {
+			srv.logRequest(ctx, req, "Trusted CA sent", t1, err, extra)
 		}
 	}
 }
 
 // FetchSecrets implements gRPC SecretDiscoveryService service and returns one TLS certificate.
 func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
-	log.Println("FetchSecrets: ", r.String())
+	srv.addRequestToContext(ctx, r)
 	if err := srv.validateRequest(ctx, r); err != nil {
 		return nil, err
 	}
@@ -261,4 +301,67 @@ func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest
 
 func (srv *Service) versionInfo() string {
 	return time.Now().UTC().Format(time.RFC3339)
+}
+
+func (srv *Service) logRequest(ctx context.Context, r *api.DiscoveryRequest, msg string, start time.Time, err error, extra ...logging.Fields) {
+	duration := time.Since(start)
+	entry := logging.GetRequestEntry(ctx)
+
+	// overwrite start_time
+	entry.Data["grpc.start_time"] = start.Format(srv.logger.GetTimeFormat())
+	entry.Data["grpc.duration"] = duration.String()
+	entry.Data["grpc.duration-ns"] = duration.Nanoseconds()
+	if r != nil {
+		entry.Data["versionInfo"] = r.VersionInfo
+		entry.Data["resourceNames"] = r.ResourceNames
+		entry.Data["responseNonce"] = r.ResponseNonce
+		if r.Node != nil {
+			entry.Data["node"] = r.Node.Id
+			entry.Data["cluster"] = r.Node.Cluster
+		}
+		if r.ErrorDetail != nil {
+			entry.Data["code"] = r.ErrorDetail.Code
+			entry.Data[logging.ErrorKey] = r.ErrorDetail.Message
+		}
+	}
+	var infoLevel bool
+	if len(extra) > 0 {
+		infoLevel = true
+		for _, fields := range extra {
+			for k, v := range fields {
+				entry.Data[k] = v
+			}
+		}
+	}
+	if err != nil {
+		entry.Data[logging.ErrorKey] = err
+	}
+
+	if err != nil || (r != nil && r.ErrorDetail != nil) {
+		entry.Error(msg)
+	} else if infoLevel {
+		entry.Info(msg)
+	} else {
+		entry.Debug(msg)
+	}
+}
+
+func (srv *Service) addRequestToContext(ctx context.Context, r *api.DiscoveryRequest) {
+	var fields logging.Fields
+	if r != nil {
+		fields = logging.Fields{
+			"versionInfo":   r.VersionInfo,
+			"resourceNames": r.ResourceNames,
+			"responseNonce": r.ResponseNonce,
+		}
+		if r.Node != nil {
+			fields["node"] = r.Node.Id
+			fields["cluster"] = r.Node.Cluster
+		}
+		if r.ErrorDetail != nil {
+			fields["code"] = r.ErrorDetail.Code
+			fields[logging.ErrorKey] = r.ErrorDetail.Message
+		}
+	}
+	logging.AddFields(ctx, fields)
 }

@@ -318,18 +318,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:56fa934069b759d52171991135a08395a7f64b3752578f8415b88110a51536fd"
-  name = "github.com/smallstep/step-lang"
-  packages = [
-    "microkanren",
-    "models",
-    "token",
-  ]
-  pruneopts = "UT"
-  revision = "72864ab751f6e5d8237a180ff87e83f1cb35e232"
-
-[[projects]]
-  branch = "master"
   digest = "1:ba52e5a5fb800ce55108b7a5f181bb809aab71c16736051312b0aa969f82ad39"
   name = "github.com/tsenart/deadcode"
   packages = ["."]
@@ -517,7 +505,6 @@
     "github.com/smallstep/cli/crypto/randutil",
     "github.com/smallstep/cli/crypto/x509util",
     "github.com/smallstep/cli/ui",
-    "github.com/smallstep/step-lang/models",
     "golang.org/x/net/http2",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
