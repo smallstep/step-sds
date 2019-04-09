@@ -129,6 +129,14 @@
   revision = "1003c8bd00dc2869cb5ca5282e6ce33834fed514"
 
 [[projects]]
+  digest = "1:1168584a5881d371e96cb0e66ef6db71d7cef0856cc7f311490bc856627f8328"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c250d6563d4d4c20252cd865923440e829844f4e"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:e51f40f0c19b39c1825eadd07d5c0a98a2ad5942b166d9fc4f54750ce9a04810"
   name = "github.com/juju/ansiterm"
@@ -269,7 +277,7 @@
 
 [[projects]]
   branch = "step-sds"
-  digest = "1:22c43e0b5f252f36b8b3f6ddd525ef78d3615959adff6db46007393dcd5efe04"
+  digest = "1:d50b89e461749c6f7c011f4a35630ac4aaf55e94d70c29ac3d3e731fcce26742"
   name = "github.com/smallstep/certificates"
   packages = [
     "api",
@@ -281,7 +289,7 @@
     "server",
   ]
   pruneopts = "UT"
-  revision = "c42265972a2dfc566977c84ae2686e2ee94e23e5"
+  revision = "888ef147fa13995db902284fecf2d81cc1f67df0"
 
 [[projects]]
   digest = "1:8b36444f30009b5e124a3ac48b353558024a95c3fccdf3e6bb557a091e67342b"
@@ -307,6 +315,18 @@
   pruneopts = "UT"
   revision = "b8972dd3035caefb9f493c4a2c664cc6cf557f93"
   version = "v0.9.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:56fa934069b759d52171991135a08395a7f64b3752578f8415b88110a51536fd"
+  name = "github.com/smallstep/step-lang"
+  packages = [
+    "microkanren",
+    "models",
+    "token",
+  ]
+  pruneopts = "UT"
+  revision = "72864ab751f6e5d8237a180ff87e83f1cb35e232"
 
 [[projects]]
   branch = "master"
@@ -340,9 +360,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cabe7113fd90f686317f2078bdbd7399c6dcd586f274a6981326ffc268661c6d"
+  digest = "1:f90933417f4c9c229b62665ead2db0badd702a731aa4a5c270d41d5d7887d35b"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "html",
     "html/atom",
     "http/httpguts",
@@ -485,15 +506,25 @@
     "github.com/envoyproxy/go-control-plane/envoy/api/v2/core",
     "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2",
     "github.com/gogo/protobuf/types",
+    "github.com/grpc-ecosystem/go-grpc-middleware",
     "github.com/pkg/errors",
+    "github.com/rs/xid",
+    "github.com/sirupsen/logrus",
     "github.com/smallstep/certificates/api",
     "github.com/smallstep/certificates/authority/provisioner",
     "github.com/smallstep/certificates/ca",
     "github.com/smallstep/cli/crypto/pemutil",
     "github.com/smallstep/cli/crypto/randutil",
+    "github.com/smallstep/cli/crypto/x509util",
     "github.com/smallstep/cli/ui",
+    "github.com/smallstep/step-lang/models",
+    "golang.org/x/net/http2",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/codes",
     "google.golang.org/grpc/credentials",
+    "google.golang.org/grpc/metadata",
+    "google.golang.org/grpc/peer",
+    "google.golang.org/grpc/status",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
