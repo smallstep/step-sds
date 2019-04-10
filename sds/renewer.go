@@ -1,12 +1,11 @@
 package sds
 
 import (
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
-	"log"
 	"net"
 	"net/http"
-	"reflect"
 	"sync"
 	"time"
 
@@ -14,108 +13,32 @@ import (
 	"github.com/smallstep/certificates/api"
 	"github.com/smallstep/certificates/authority/provisioner"
 	"github.com/smallstep/certificates/ca"
+	"github.com/smallstep/cli/jose"
 	"golang.org/x/net/http2"
 )
 
-type renewer interface {
-	ServerCertificate() *tls.Certificate
-	RootCertificates() []*x509.Certificate
-	RenewChannel() chan *certificate
-	Stop()
+type secrets struct {
+	Roots        []*x509.Certificate
+	Certificates []*tls.Certificate
 }
 
-type certificate struct {
-	Name   string
-	Server *tls.Certificate
-	Roots  []*x509.Certificate
+type secretRenewer struct {
+	m            sync.RWMutex
+	client       *ca.Client
+	roots        []*x509.Certificate
+	certificates []*tls.Certificate
+	transports   []*http.Transport
+	timer        *time.Timer
+	renewPeriod  time.Duration
+	renewCh      chan secrets
 }
 
-type certRenewer struct {
-	cert    *tls.Certificate
-	roots   []*x509.Certificate
-	renewer *ca.TLSRenewer
-	renewCh chan *certificate
-}
-
-func newCertRnewer(token string) (*certRenewer, error) {
-	client, err := ca.Bootstrap(token)
-	if err != nil {
-		return nil, err
+func newSecretRenewer(tokens []string) (*secretRenewer, error) {
+	if len(tokens) == 0 {
+		return nil, errors.New("missing tokens")
 	}
 
-	req, pk, err := ca.CreateSignRequest(token)
-	if err != nil {
-		return nil, err
-	}
-
-	notAfter := provisioner.TimeDuration{}
-	notAfter.SetDuration(1*time.Minute + 1*time.Second)
-	req.NotAfter = notAfter
-
-	sign, err := client.Sign(req)
-	if err != nil {
-		return nil, err
-	}
-
-	rootCerts, err := client.Roots()
-	if err != nil {
-		return nil, err
-	}
-	roots := apiCertToX509(rootCerts.Certificates)
-
-	cert, err := ca.TLSCertificate(sign, pk)
-	if err != nil {
-		return nil, err
-	}
-
-	renewer, err := client.GetCertificateRenewer(sign, pk, ca.AddRootsToCAs())
-	if err != nil {
-		return nil, err
-	}
-
-	renewCh := make(chan *certificate)
-	renewCertificate := renewer.RenewCertificate
-	renewer.RenewCertificate = func() (*tls.Certificate, error) {
-		cert, err := renewCertificate()
-		if err != nil {
-			return nil, err
-		}
-		if resp, err := client.Roots(); err != nil {
-			log.Println(err)
-		} else {
-			roots = apiCertToX509(resp.Certificates)
-		}
-		renewCh <- &certificate{
-			Name:   cert.Leaf.Subject.CommonName,
-			Server: cert,
-			Roots:  roots,
-		}
-		return cert, nil
-	}
-	renewer.Run()
-	return &certRenewer{
-		cert:    cert,
-		roots:   roots,
-		renewer: renewer,
-		renewCh: renewCh,
-	}, nil
-}
-
-func (r *certRenewer) ServerCertificate() *tls.Certificate   { return r.cert }
-func (r *certRenewer) RootCertificates() []*x509.Certificate { return r.roots }
-func (r *certRenewer) RenewChannel() chan *certificate       { return r.renewCh }
-func (r *certRenewer) Stop()                                 { r.renewer.Stop() }
-
-type rootRenewer struct {
-	m       sync.Mutex
-	client  *ca.Client
-	roots   []*x509.Certificate
-	renewCh chan *certificate
-	timer   *time.Timer
-}
-
-func newRootRnewer(token string) (*rootRenewer, error) {
-	client, err := ca.Bootstrap(token)
+	client, err := ca.Bootstrap(tokens[0])
 	if err != nil {
 		return nil, err
 	}
@@ -125,40 +48,160 @@ func newRootRnewer(token string) (*rootRenewer, error) {
 		return nil, err
 	}
 
-	tr, err := apiCertToTransport(roots.Certificates)
-	if err != nil {
-		return nil, err
-	}
-	client.SetTransport(tr)
-
-	r := &rootRenewer{
-		client:  client,
+	s := &secretRenewer{
 		roots:   apiCertToX509(roots.Certificates),
-		renewCh: make(chan *certificate),
+		client:  client,
+		renewCh: make(chan secrets),
 	}
-	r.timer = time.AfterFunc(ValidationContextRenewPeriod, r.renewRoots)
-	return r, nil
-}
 
-func (r *rootRenewer) ServerCertificate() *tls.Certificate   { return nil }
-func (r *rootRenewer) RootCertificates() []*x509.Certificate { return r.roots }
-func (r *rootRenewer) RenewChannel() chan *certificate       { return r.renewCh }
-func (r *rootRenewer) Stop()                                 { r.timer.Stop() }
+	for _, tok := range tokens {
+		subject, err := getTokenSubject(tok)
+		if err != nil {
+			return nil, err
+		}
 
-func (r *rootRenewer) renewRoots() {
-	resp, err := r.client.Roots()
-	if err != nil {
-		time.AfterFunc(ValidationContextRenewPeriod/20, r.renewRoots)
-		return
-	}
-	roots := apiCertToX509(resp.Certificates)
-	if !reflect.DeepEqual(roots, r.roots) {
-		r.roots = roots
-		time.AfterFunc(ValidationContextRenewPeriod, r.renewRoots)
-		r.renewCh <- &certificate{
-			Roots: roots,
+		if !isValidationContext(subject) {
+			cert, tr, err := s.sign(tok)
+			if err != nil {
+				return nil, err
+			}
+			s.certificates = append(s.certificates, cert)
+			s.transports = append(s.transports, tr)
 		}
 	}
+	if len(s.certificates) > 0 {
+		validity := s.certificates[0].Leaf.NotAfter.Sub(s.certificates[0].Leaf.NotBefore)
+		s.renewPeriod = validity / 3
+	} else {
+		s.renewPeriod = ValidationContextRenewPeriod
+	}
+
+	// Initialize renewer
+	s.timer = time.AfterFunc(s.renewPeriod, s.doRenew)
+	return s, nil
+}
+
+// Stop stops the renewer
+func (s *secretRenewer) Stop() {
+	close(s.renewCh)
+	s.timer.Stop()
+}
+
+// Secrets returns the current secrets.
+func (s *secretRenewer) Secrets() secrets {
+	s.m.RLock()
+	defer s.m.RUnlock()
+	return secrets{
+		Roots:        s.roots,
+		Certificates: s.certificates,
+	}
+}
+
+// RenewChannel returns the channel that will receive all the certificates.
+func (s *secretRenewer) RenewChannel() chan secrets {
+	return s.renewCh
+}
+
+func (s *secretRenewer) doRenew() {
+	if err := s.renew(); err != nil {
+		s.timer.Reset(s.renewPeriod / 20)
+		return
+	}
+	s.timer.Reset(s.renewPeriod)
+	s.renewCh <- s.Secrets()
+}
+
+// Sign signs creates a new CSR ands sends it to the CA to sign it, it returns
+// the signed certificate, and a transport configured with the certificate.
+func (s *secretRenewer) sign(token string) (*tls.Certificate, *http.Transport, error) {
+	req, pk, err := ca.CreateSignRequest(token)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notAfter := provisioner.TimeDuration{}
+	notAfter.SetDuration(61 * time.Second)
+	req.NotAfter = notAfter
+
+	sign, err := s.client.Sign(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return s.createCertAndTransport(sign, pk)
+}
+
+func (s *secretRenewer) renew() error {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	// Update new roots
+	roots, err := s.client.Roots()
+	if err != nil {
+		return err
+	}
+	s.roots = apiCertToX509(roots.Certificates)
+
+	// Update client transport with new roots
+	tr, err := apiCertToTransport(roots.Certificates)
+	if err != nil {
+		return err
+	}
+	s.client.SetTransport(tr)
+
+	// Update certificates
+	for i, cert := range s.certificates {
+		sign, err := s.client.Renew(s.transports[i])
+		if err != nil {
+			return err
+		}
+
+		crt, tr, err := s.createCertAndTransport(sign, cert.PrivateKey)
+		if err != nil {
+			return err
+		}
+		s.certificates[i] = crt
+		s.transports[i] = tr
+	}
+
+	return nil
+}
+
+func (s *secretRenewer) createCertAndTransport(sign *api.SignResponse, pk crypto.PrivateKey) (*tls.Certificate, *http.Transport, error) {
+	cert, err := ca.TLSCertificate(sign, pk)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tlsConfig := getDefaultTLSConfig(sign)
+	tlsConfig.Certificates = []tls.Certificate{*cert}
+	tlsConfig.PreferServerCipherSuites = true
+	if len(s.roots) > 0 {
+		pool := x509.NewCertPool()
+		for _, cert := range s.roots {
+			pool.AddCert(cert)
+		}
+		tlsConfig.RootCAs = pool
+	}
+
+	tr, err := getDefaultTransport(tlsConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, tr, nil
+}
+
+func getTokenSubject(token string) (string, error) {
+	tok, err := jose.ParseSigned(token)
+	if err != nil {
+		return "", errors.Wrap(err, "error parsing token")
+	}
+	var claims jose.Claims
+	if err := tok.UnsafeClaimsWithoutVerification(&claims); err != nil {
+		return "", errors.Wrap(err, "error parsing token")
+	}
+	return claims.Subject, nil
 }
 
 func apiCertToX509(certs []api.Certificate) []*x509.Certificate {
@@ -190,6 +233,38 @@ func apiCertToTransport(certs []api.Certificate) (http.RoundTripper, error) {
 			PreferServerCipherSuites: true,
 			RootCAs:                  pool,
 		},
+	}
+	if err := http2.ConfigureTransport(tr); err != nil {
+		return nil, errors.Wrap(err, "error configuring transport")
+	}
+	return tr, nil
+}
+
+func getDefaultTLSConfig(sign *api.SignResponse) *tls.Config {
+	if sign.TLSOptions != nil {
+		return sign.TLSOptions.TLSConfig()
+	}
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+}
+
+// getDefaultTransport returns an http.Transport with the same parameters than
+// http.DefaultTransport, but adds the given tls.Config and configures the
+// transport for HTTP/2.
+func getDefaultTransport(tlsConfig *tls.Config) (*http.Transport, error) {
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       tlsConfig,
 	}
 	if err := http2.ConfigureTransport(tr); err != nil {
 		return nil, errors.Wrap(err, "error configuring transport")

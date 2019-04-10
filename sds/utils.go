@@ -34,19 +34,21 @@ func getSubject(r *api.DiscoveryRequest) (string, bool) {
 }
 
 // getDiscoveryResponse returns the api.DiscoveryResponse for the given request.
-func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, cert *tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
+func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, certs []*tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
 	nonce, err := randutil.Hex(64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating nonce")
 	}
 
+	var i int
 	var b []byte
 	var resources []types.Any
 	for _, name := range r.ResourceNames {
 		if isValidationContext(name) {
 			b, err = getTrustedCA(name, roots)
 		} else {
-			b, err = getCertificateChain(name, cert)
+			b, err = getCertificateChain(name, certs[i])
+			i++
 		}
 		if err != nil {
 			return nil, err

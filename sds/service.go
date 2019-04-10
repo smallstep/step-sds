@@ -12,7 +12,6 @@ import (
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/cli/crypto/x509util"
 	"github.com/smallstep/step-sds/logging"
@@ -107,8 +106,6 @@ func (srv *Service) Register(s *grpc.Server) {
 // StreamSecrets implements the gRPC SecretDiscoveryService service and returns
 // a stream of TLS certificates.
 func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSecretsServer) (err error) {
-	var rnw renewer
-
 	ctx := sds.Context()
 	errCh := make(chan error)
 	reqCh := make(chan *api.DiscoveryRequest)
@@ -120,7 +117,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 				errCh <- err
 				return
 			}
-			if err := srv.validateRequest(sds.Context(), r); err != nil {
+			if err := srv.validateRequest(ctx, r); err != nil {
 				errCh <- err
 				return
 			}
@@ -129,16 +126,19 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	}()
 
 	var t1 time.Time
-	var cert *tls.Certificate
+	var certs []*tls.Certificate
 	var roots []*x509.Certificate
-	var ch chan *certificate
+	var ch chan secrets
 	var nonce, versionInfo string
 	var req *api.DiscoveryRequest
+	var isRenewal bool
 
 	for {
 		select {
 		case r := <-reqCh:
 			t1 = time.Now()
+			isRenewal = false
+
 			// Validations
 			if r.ErrorDetail != nil {
 				srv.logRequest(ctx, r, "NACK", t1, nil)
@@ -163,42 +163,32 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			}
 
 			req = r
-			subject, ok := getSubject(req)
-			if ok {
-				token, err := srv.provisioner.Token(subject)
+
+			var tokens []string
+			for _, name := range req.ResourceNames {
+				token, err := srv.provisioner.Token(name)
 				if err != nil {
 					srv.logRequest(ctx, r, "Error generating token", t1, err)
 					return err
 				}
-				cr, err := newCertRnewer(token)
-				if err != nil {
-					srv.logRequest(ctx, r, "Error creating renewer", t1, err)
-					return err
-				}
-				defer cr.Stop()
-				rnw = cr
-			} else {
-				token, err := srv.provisioner.Token("fake-root-subject")
-				if err != nil {
-					srv.logRequest(ctx, r, "Error generating token", t1, err)
-					return err
-				}
-				rr, err := newRootRnewer(token)
-				if err != nil {
-					srv.logRequest(ctx, r, "Error creating renewer", t1, err)
-					return err
-				}
-				defer rr.Stop()
-				rnw = rr
+				tokens = append(tokens, token)
 			}
 
-			ch = rnw.RenewChannel()
-			cert = rnw.ServerCertificate()
-			roots = rnw.RootCertificates()
-		case certs := <-ch:
+			sr, err := newSecretRenewer(tokens)
+			if err != nil {
+				srv.logRequest(ctx, r, "Error creating renewer", t1, err)
+				return err
+			}
+			defer sr.Stop()
+
+			ch = sr.RenewChannel()
+			secrets := sr.Secrets()
+			certs, roots = secrets.Certificates, secrets.Roots
+		case secrets := <-ch:
 			t1 = time.Now()
+			isRenewal = true
 			versionInfo = srv.versionInfo()
-			cert, roots = certs.Server, certs.Roots
+			certs, roots = secrets.Certificates, secrets.Roots
 		case err := <-errCh:
 			t1 = time.Now()
 			if err == io.EOF {
@@ -211,7 +201,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 		}
 
 		// Send certificates
-		dr, err := getDiscoveryResponse(req, versionInfo, cert, roots)
+		dr, err := getDiscoveryResponse(req, versionInfo, certs, roots)
 		if err != nil {
 			srv.logRequest(ctx, req, "Creation of DiscoveryResponse failed", t1, err)
 			return err
@@ -226,8 +216,12 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			"nonce": nonce,
 		}
 
-		if cert != nil {
-			srv.logRequest(ctx, req, "Certificate sent", t1, err, extra)
+		if len(certs) > 0 {
+			if isRenewal {
+				srv.logRequest(ctx, req, "Certificate renewed", t1, err, extra)
+			} else {
+				srv.logRequest(ctx, req, "Certificate sent", t1, err, extra)
+			}
 		} else {
 			srv.logRequest(ctx, req, "Trusted CA sent", t1, err, extra)
 		}
@@ -241,25 +235,26 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 		return nil, err
 	}
 
-	subject, ok := getSubject(r)
-	if !ok {
-		return nil, errors.Errorf("DiscoveryRequest does not contain a valid subject: %s", r.String())
+	var tokens []string
+	for _, name := range r.ResourceNames {
+		token, err := srv.provisioner.Token(name)
+		if err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, token)
 	}
 
+	sr, err := newSecretRenewer(tokens)
+	if err != nil {
+		return nil, err
+	}
+	defer sr.Stop()
+
+	secrets := sr.Secrets()
+	certs, roots := secrets.Certificates, secrets.Roots
 	versionInfo := time.Now().UTC().Format(time.RFC3339)
-	token, err := srv.provisioner.Token(subject)
-	if err != nil {
-		return nil, err
-	}
-	cr, err := newCertRnewer(token)
-	if err != nil {
-		return nil, err
-	}
-	defer cr.Stop()
 
-	cert := cr.ServerCertificate()
-	roots := cr.RootCertificates()
-	return getDiscoveryResponse(r, versionInfo, cert, roots)
+	return getDiscoveryResponse(r, versionInfo, certs, roots)
 }
 
 func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest) error {
