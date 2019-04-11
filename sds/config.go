@@ -18,7 +18,7 @@ type Config struct {
 	AuthorizedIdentity    string            `json:"authorizedIdentity"`
 	AuthorizedFingerprint string            `json:"authorizedFingerprint"`
 	Provisioner           ProvisionerConfig `json:"provisioner"`
-	Logger                json.RawMessage
+	Logger                json.RawMessage   `json:"logger"`
 }
 
 // IsTCP returns if the network is tcp, tcp4, or tcp6.
