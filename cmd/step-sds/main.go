@@ -1,233 +1,202 @@
 package main
 
 import (
-	"bytes"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/json"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net"
+	"math/rand"
+	"net/http"
 	"os"
-	"runtime"
+	"reflect"
+	"regexp"
+	"strings"
 	"time"
-	"unicode"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-
-	"github.com/smallstep/certificates/ca"
-	"github.com/smallstep/cli/ui"
-	"github.com/smallstep/step-sds/logging"
+	"github.com/smallstep/cli/command"
+	"github.com/smallstep/cli/command/version"
+	"github.com/smallstep/cli/config"
+	"github.com/smallstep/cli/usage"
 	"github.com/smallstep/step-sds/sds"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"github.com/urfave/cli"
+
+	_ "github.com/smallstep/step-sds/commands"
 )
 
-// commit and buildTime are filled in during build by the Makefile
-var (
-	BuildTime = "N/A"
-	Version   = "N/A"
-)
+// Version is set by an LDFLAG at build time representing the git tag or commit
+// for the current release
+var Version = "N/A"
+
+// BuildTime is set by an LDFLAG at build time representing the timestamp at
+// the time of build
+var BuildTime = "N/A"
+
+var placeholderString = regexp.MustCompile(`<.*?>`)
+
+var AppHelpTemplate = `## NAME
+**{{.HelpName}}** -- {{.Usage}}
+
+## USAGE
+{{if .UsageText}}{{.UsageText}}{{else}}**{{.HelpName}}**{{if .Commands}} <command>{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}_[arguments]_{{end}}{{end}}{{if .Description}}
+
+## DESCRIPTION
+{{.Description}}{{end}}{{if .VisibleCommands}}
+
+## COMMANDS
+
+{{range .VisibleCategories}}{{if .Name}}{{.Name}}:{{end}}
+|||
+|---|---|{{range .VisibleCommands}}
+| **{{join .Names ", "}}** | {{.Usage}} |{{end}}
+{{end}}{{if .VisibleFlags}}{{end}}
+
+## OPTIONS
+
+{{range $index, $option := .VisibleFlags}}{{if $index}}
+{{end}}{{$option}}
+{{end}}{{end}}{{if .Copyright}}{{if len .Authors}}
+
+## AUTHOR{{with $length := len .Authors}}{{if ne 1 $length}}S{{end}}{{end}}:
+
+{{range $index, $author := .Authors}}{{if $index}}
+{{end}}{{$author}}{{end}}{{end}}{{if .Version}}{{if not .HideVersion}}
+
+## ONLINE
+
+This documentation is available online at https://github.com/smallstep/step-sds
+
+## VERSION
+
+{{.Version}}{{end}}{{end}}
+
+## COPYRIGHT
+
+{{.Copyright}}
+{{end}}
+`
 
 func init() {
-	if Version == "N/A" {
-		sds.Identifier = "Smallstep SDS/0000000-dev"
-	} else {
-		sds.Identifier = fmt.Sprintf("Smallstep SDS/%s", Version)
+	config.Set("Smallstep SDS", Version, BuildTime)
+	sds.Identifier = config.Version()
+	rand.Seed(time.Now().UnixNano())
+}
+
+func panicHandler() {
+	if r := recover(); r != nil {
+		if os.Getenv("STEPDEBUG") == "1" {
+			fmt.Fprintf(os.Stderr, "%s\n", config.Version())
+			fmt.Fprintf(os.Stderr, "Release Date: %s\n\n", config.ReleaseDate())
+			panic(r)
+		} else {
+			fmt.Fprintln(os.Stderr, "Something unexpected happened.")
+			fmt.Fprintln(os.Stderr, "If you want to help us debug the problem, please run:")
+			fmt.Fprintf(os.Stderr, "STEPDEBUG=1 %s\n", strings.Join(os.Args, " "))
+			fmt.Fprintln(os.Stderr, "and send the output to info@smallstep.com")
+			os.Exit(2)
+		}
 	}
-}
-
-// getVersion returns the current version of the binary.
-func getVersion() string {
-	out := Version
-	if out == "N/A" {
-		out = "0000000-dev"
-	}
-	return fmt.Sprintf("Smallstep SDS/%s (%s/%s)",
-		out, runtime.GOOS, runtime.GOARCH)
-}
-
-// getReleaseDate returns the time of when the binary was built.
-func getReleaseDate() string {
-	out := BuildTime
-	if out == "N/A" {
-		out = time.Now().UTC().Format("2006-01-02 15:04 MST")
-	}
-
-	return out
-}
-
-// Print version and release date.
-func printFullVersion() {
-	fmt.Printf("%s\n", getVersion())
-	fmt.Printf("Release Date: %s\n", getReleaseDate())
-}
-
-func fail(a ...interface{}) {
-	fmt.Fprintln(os.Stderr, a...)
-	os.Exit(1)
-}
-
-func failf(format string, a ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, a...)
-	os.Exit(1)
 }
 
 func main() {
-	var network, address string
-	var certFile, keyFile, rootFile string
-	var authorizedIdentity, authorizedFingerprint string
-	var kid, issuer, passwordFile string
-	var caURL, caRoot string
-	var version bool
-	flag.StringVar(&network, "network", "tcp", `The network to listen to ("tcp", "tcp4", "tcp6", "unix" or "unixpacket")`)
-	flag.StringVar(&address, "address", "127.0.0.1:443", "The local network address (a tcp or a path)")
-	flag.StringVar(&certFile, "cert", "", "The TLS certificate path")
-	flag.StringVar(&keyFile, "key", "", "The TLS certificate key path")
-	flag.StringVar(&rootFile, "root", "", "The Root CA certificate path")
-	flag.StringVar(&authorizedIdentity, "authorized-identity", "", "The identity of an authorized SDS client (e.g. envoy.smallstep.com)")
-	flag.StringVar(&authorizedFingerprint, "authorized-fingerprint", "", "The fingerprint of the SDS client certificate")
-	flag.StringVar(&kid, "kid", "", "The certificate provisioner kid used to get a certificate")
-	flag.StringVar(&issuer, "issuer", "", "The certificate provisioner issuer used to get a certificate")
-	flag.StringVar(&passwordFile, "password-file", "", "The path to a file with the certificate provisioner password")
-	flag.StringVar(&caURL, "ca-url", "", "The URI of the targeted Step Certificate Authority")
-	flag.StringVar(&caRoot, "ca-root", "", "The path to the PEM file used as the root certificate authority")
-	flag.BoolVar(&version, "version", false, "Print the version")
-	flag.Parse()
+	defer panicHandler()
+	// Override global framework components
+	cli.VersionPrinter = func(c *cli.Context) {
+		version.Command(c)
+	}
+	cli.AppHelpTemplate = AppHelpTemplate
+	cli.SubcommandHelpTemplate = usage.SubcommandHelpTemplate
+	cli.CommandHelpTemplate = usage.CommandHelpTemplate
+	cli.HelpPrinter = usage.HelpPrinter
+	cli.FlagNamePrefixer = usage.FlagNamePrefixer
+	cli.FlagStringer = stringifyFlag
 
-	if version {
-		printFullVersion()
-		os.Exit(0)
+	// Configure cli app
+	app := cli.NewApp()
+	app.Name = "step-sds"
+	app.HelpName = "step-sds"
+	app.Usage = "secret discovery service"
+	app.Version = config.Version()
+	app.Commands = command.Retrieve()
+	app.Flags = append(app.Flags, cli.HelpFlag)
+	app.EnableBashCompletion = true
+	app.Copyright = "(c) 2019 Smallstep Labs, Inc."
+	app.Usage = "secret discovery service for secure certificate distribution"
+	// app.UsageText = `**step-sds** <config> [**--password-file**=<file>]`
+	// 	app.Description = `**step-sds** runs a secret discovery service (SDS) using the given configuration.
+
+	// See the README.md for more detailed configuration documentation.
+
+	// ## POSITIONAL ARGUMENTS
+
+	// <config>
+	// : File that configures the operation of the Step SDS; this file is generated
+	// when you initialize the Step SDS using 'step init'
+
+	// ## EXIT CODES
+
+	// This command will run indefinitely on success and return \>0 if any error occurs.
+
+	// ## EXAMPLES
+
+	// These examples assume that you have already initialized your PKI by running
+	// 'step-sds init'. If you have not completed this step please see the 'Getting Started'
+	// section of the README.
+
+	// Run the Step SDS and prompt for the provisioner password:
+	// '''
+	// $ step-sds $STEPPATH/config/sds.json
+	// '''
+
+	// Run the Step SDS and read the password from a file - this is useful for
+	// automating deployment:
+	// '''
+	// $ step-sds $STEPPATH/config/ca.json --password-file ./password.txt
+	// '''`
+
+	// All non-successful output should be written to stderr
+	app.Writer = os.Stdout
+	app.ErrWriter = os.Stderr
+
+	// app.Action = func(ctx *cli.Context) error {
+	// 	// Hack to be able to run a the top action as a subcommand
+	// 	cmd := cli.Command{Name: "start", Action: startAction, Flags: app.Flags}
+	// 	set := flag.NewFlagSet(app.Name, flag.ContinueOnError)
+	// 	set.Parse(os.Args)
+	// 	ctx = cli.NewContext(app, set, nil)
+	// 	return cmd.Run(ctx)
+	// }
+
+	// Start the golang debug logger if environment variable is set.
+	// See https://golang.org/pkg/net/http/pprof/
+	debugProfAddr := os.Getenv("STEP_PROF_ADDR")
+	if debugProfAddr != "" {
+		go func() {
+			log.Println(http.ListenAndServe(debugProfAddr, nil))
+		}()
 	}
 
-	// Flag validation
-	switch {
-	case network == "":
-		fail("flag '--network' is required")
-	case address == "":
-		fail("flag '--address' is required")
-	case kid != "" && issuer == "":
-		fail("flag '--kid' requires the '--issuer' flag")
-	case kid != "" && caURL == "" && caRoot == "":
-		fail("flag '--kid' requires the '--ca-url' and '--ca-root' flags")
-	case kid != "" && caURL == "":
-		fail("flag '--kid' requires the '--ca-url' flag")
-	case kid != "" && caRoot == "":
-		fail("flag '--provisioner' requires the '--ca-root' flag")
-	}
-
-	var err error
-	var password []byte
-	if kid != "" {
-		if passwordFile == "" {
-			password, err = ui.PromptPassword("Please enter the password to encrypt the provisioner key")
-			if err != nil {
-				fail(err)
-			}
+	if err := app.Run(os.Args); err != nil {
+		if os.Getenv("STEPDEBUG") == "1" {
+			fmt.Fprintf(os.Stderr, "%+v\n", err)
 		} else {
-			b, err := ioutil.ReadFile(passwordFile)
-			if err != nil {
-				fail(err)
-			}
-			password = bytes.TrimRightFunc(b, unicode.IsSpace)
+			fmt.Fprintln(os.Stderr, err)
 		}
-	}
-
-	var tcp bool
-	if network == "tcp" || network == "tcp4" || network == "tcp6" {
-		tcp = true
-	} else if network != "unix" && network != "unixpacket" {
-		failf("invalid value '%s' for flag '--network', options are tcp, tcp4, tcp6, unix or unixpacket", network)
-	}
-
-	switch {
-	case tcp && certFile == "":
-		failf("flag '--cert' is required with a '%s' address", network)
-	case tcp && keyFile == "":
-		failf("flag '--key' is required with a '%s' address", network)
-	}
-
-	config := sds.Config{
-		AuthorizedIdentity:    authorizedIdentity,
-		AuthorizedFingerprint: authorizedFingerprint,
-		Provisioner: sds.ProvisionerConfig{
-			Issuer:   issuer,
-			KeyID:    kid,
-			Password: string(password),
-			CaURL:    caURL,
-			CaRoot:   caRoot,
-		},
-		Logger: json.RawMessage("{}"),
-	}
-
-	logger, err := logging.New("step-sds", config.Logger)
-	if err != nil {
-		failf("error initializing logger: %v", err)
-	}
-
-	// Start gRPC server
-	opts := []grpc.ServerOption{
-		grpc_middleware.WithUnaryServerChain(logging.UnaryServerInterceptor(logger)),
-		grpc_middleware.WithStreamServerChain(logging.StreamServerInterceptor(logger)),
-	}
-
-	if tcp {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			fail(err)
-		}
-		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			MinVersion:   tls.VersionTLS12,
-		}
-		if rootFile != "" {
-			b, err := ioutil.ReadFile(rootFile)
-			if err != nil {
-				fail(err)
-			}
-			pool := x509.NewCertPool()
-			if !pool.AppendCertsFromPEM(b) {
-				failf("failed to successfully load root certificates from %s", rootFile)
-			}
-			tlsConfig.ClientCAs = pool
-
-		}
-		opts = append(opts, grpc.Creds(credentials.NewTLS(tlsConfig)))
-	}
-
-	lis, err := net.Listen(network, address)
-	if err != nil {
-		fail(err)
-	}
-
-	s, err := sds.New(config)
-	if err != nil {
-		fail(err)
-	}
-
-	srv := grpc.NewServer(opts...)
-	s.Register(srv)
-	go ca.StopHandler(&stopper{srv: srv, sds: s})
-
-	log.Printf("Serving at %s://%s ...", network, lis.Addr())
-	if err := srv.Serve(lis); err != nil {
-		log.Fatal(err)
+		os.Exit(1)
 	}
 }
 
-// stopper is a wrapper to be able to use the ca.StopHandler.
-type stopper struct {
-	srv *grpc.Server
-	sds *sds.Service
+func flagValue(f cli.Flag) reflect.Value {
+	fv := reflect.ValueOf(f)
+	for fv.Kind() == reflect.Ptr {
+		fv = reflect.Indirect(fv)
+	}
+	return fv
 }
 
-func (s *stopper) Stop() error {
-	if err := s.sds.Stop(); err != nil {
-		return err
+func stringifyFlag(f cli.Flag) string {
+	fv := flagValue(f)
+	usage := fv.FieldByName("Usage").String()
+	placeholder := placeholderString.FindString(usage)
+	if placeholder == "" {
+		placeholder = "<value>"
 	}
-	s.srv.GracefulStop()
-	return nil
+	return cli.FlagNamePrefixer(fv.FieldByName("Name").String(), placeholder) + "\t" + usage
 }
