@@ -277,28 +277,32 @@
 
 [[projects]]
   branch = "step-sds"
-  digest = "1:d50b89e461749c6f7c011f4a35630ac4aaf55e94d70c29ac3d3e731fcce26742"
+  digest = "1:d281ec48ef9cdfc7829a001b599d7397a46fb3886dd59271c23f13ad7d423efb"
   name = "github.com/smallstep/certificates"
   packages = [
     "api",
     "authority",
     "authority/provisioner",
     "ca",
+    "db",
     "logging",
     "monitoring",
     "server",
   ]
   pruneopts = "UT"
-  revision = "888ef147fa13995db902284fecf2d81cc1f67df0"
+  revision = "de1114c3c63970950f174daad6aaf022c977a4c3"
 
 [[projects]]
-  digest = "1:8b36444f30009b5e124a3ac48b353558024a95c3fccdf3e6bb557a091e67342b"
+  branch = "master"
+  digest = "1:934d12f63ad5b7ed8a5c855d4f21e8aceb175e9b859f3ecad07f8b6a2080a545"
   name = "github.com/smallstep/cli"
   packages = [
     "command",
+    "command/version",
     "config",
     "crypto/keys",
     "crypto/pemutil",
+    "crypto/pki",
     "crypto/randutil",
     "crypto/tlsutil",
     "crypto/x509util",
@@ -313,8 +317,15 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "b8972dd3035caefb9f493c4a2c664cc6cf557f93"
-  version = "v0.9.0"
+  revision = "499ccacece4cd3820208667c041e76aaa2d01bff"
+
+[[projects]]
+  branch = "master"
+  digest = "1:fd8d9eb07509d8ef47fc82c99646f0b2203b2ba3c240ba77d8c457bb6109836d"
+  name = "github.com/smallstep/nosql"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d8f68d14f9ae04e0991dce06b44768f2d38dccf8"
 
 [[projects]]
   branch = "master"
@@ -333,14 +344,23 @@
   revision = "693af58b4d51b8fcc7f9d89576da170765980581"
 
 [[projects]]
+  digest = "1:5f7414cf41466d4b4dd7ec52b2cd3e481e08cfd11e7e24fef730c0e483e88bb1"
+  name = "go.etcd.io/bbolt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "63597a96ec0ad9e6d43c3fc81e809909e0237461"
+  version = "v1.3.2"
+
+[[projects]]
   branch = "master"
-  digest = "1:440cc1bfe7818804773f07878c030ee719bf3b7ae85e6ec1991c8875318b128e"
+  digest = "1:d270d7c7614032c6751cb02fca0a3aba9d2252ae7f2b475e8e0226945bd94f9f"
   name = "golang.org/x/crypto"
   packages = [
     "cryptobyte",
     "cryptobyte/asn1",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "ocsp",
     "pbkdf2",
   ]
   pruneopts = "UT"
@@ -465,7 +485,7 @@
   revision = "63abe20a23e29e80bbef8089bd3dee3ac25e5306"
 
 [[projects]]
-  digest = "1:7fbe10f3790dc4e6296c7c844c5a9b35513e5521c29c47e10ba99cd2956a2719"
+  digest = "1:9593bab40e981b1f90b7e07faeab0d09b75fe338880d08880f986a9d3283c53f"
   name = "gopkg.in/square/go-jose.v2"
   packages = [
     ".",
@@ -474,8 +494,8 @@
     "jwt",
   ]
   pruneopts = "UT"
-  revision = "ef984e69dd356202fd4e4910d4d9c24468bdf0b8"
-  version = "v2.1.9"
+  revision = "730df5f748271903322feb182be83b43ebbbe27d"
+  version = "v2.3.1"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
@@ -501,10 +521,19 @@
     "github.com/smallstep/certificates/api",
     "github.com/smallstep/certificates/authority/provisioner",
     "github.com/smallstep/certificates/ca",
+    "github.com/smallstep/cli/command",
+    "github.com/smallstep/cli/command/version",
+    "github.com/smallstep/cli/config",
     "github.com/smallstep/cli/crypto/pemutil",
+    "github.com/smallstep/cli/crypto/pki",
     "github.com/smallstep/cli/crypto/randutil",
     "github.com/smallstep/cli/crypto/x509util",
+    "github.com/smallstep/cli/errs",
+    "github.com/smallstep/cli/jose",
     "github.com/smallstep/cli/ui",
+    "github.com/smallstep/cli/usage",
+    "github.com/smallstep/cli/utils",
+    "github.com/urfave/cli",
     "golang.org/x/net/http2",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
