@@ -18,7 +18,11 @@ import (
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
 
+	// Enabled commands
 	_ "github.com/smallstep/step-sds/commands"
+
+	// Profiling and debugging
+	_ "net/http/pprof"
 )
 
 // Version is set by an LDFLAG at build time representing the git tag or commit
@@ -119,50 +123,10 @@ func main() {
 	app.EnableBashCompletion = true
 	app.Copyright = "(c) 2019 Smallstep Labs, Inc."
 	app.Usage = "secret discovery service for secure certificate distribution"
-	// app.UsageText = `**step-sds** <config> [**--password-file**=<file>]`
-	// 	app.Description = `**step-sds** runs a secret discovery service (SDS) using the given configuration.
-
-	// See the README.md for more detailed configuration documentation.
-
-	// ## POSITIONAL ARGUMENTS
-
-	// <config>
-	// : File that configures the operation of the Step SDS; this file is generated
-	// when you initialize the Step SDS using 'step init'
-
-	// ## EXIT CODES
-
-	// This command will run indefinitely on success and return \>0 if any error occurs.
-
-	// ## EXAMPLES
-
-	// These examples assume that you have already initialized your PKI by running
-	// 'step-sds init'. If you have not completed this step please see the 'Getting Started'
-	// section of the README.
-
-	// Run the Step SDS and prompt for the provisioner password:
-	// '''
-	// $ step-sds $STEPPATH/config/sds.json
-	// '''
-
-	// Run the Step SDS and read the password from a file - this is useful for
-	// automating deployment:
-	// '''
-	// $ step-sds $STEPPATH/config/ca.json --password-file ./password.txt
-	// '''`
 
 	// All non-successful output should be written to stderr
 	app.Writer = os.Stdout
 	app.ErrWriter = os.Stderr
-
-	// app.Action = func(ctx *cli.Context) error {
-	// 	// Hack to be able to run a the top action as a subcommand
-	// 	cmd := cli.Command{Name: "start", Action: startAction, Flags: app.Flags}
-	// 	set := flag.NewFlagSet(app.Name, flag.ContinueOnError)
-	// 	set.Parse(os.Args)
-	// 	ctx = cli.NewContext(app, set, nil)
-	// 	return cmd.Run(ctx)
-	// }
 
 	// Start the golang debug logger if environment variable is set.
 	// See https://golang.org/pkg/net/http/pprof/
