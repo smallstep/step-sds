@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -47,23 +46,6 @@ type Service struct {
 	authorizedIdentity    string
 	authorizedFingerprint string
 	logger                *logging.Logger
-}
-
-// Config is the configuration used to initialize the SDS Service.
-type Config struct {
-	AuthorizedIdentity    string            `json:"authorizedIdentity"`
-	AuthorizedFingerprint string            `json:"authorizedFingerprint"`
-	Provisioner           ProvisionerConfig `json:"provisioner"`
-	Logger                json.RawMessage
-}
-
-// ProvisionerConfig is the configuration used to initialize the provisioner.
-type ProvisionerConfig struct {
-	Issuer   string `json:"iss"`
-	KeyID    string `json:"kid"`
-	Password string `json:"password,omitempty"`
-	CaURL    string `json:"ca-url"`
-	CaRoot   string `json:"root"`
 }
 
 // New creates a new sds.Service that will support multiple TLS certificates. It
