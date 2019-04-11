@@ -35,7 +35,7 @@ var BuildTime = "N/A"
 
 var placeholderString = regexp.MustCompile(`<.*?>`)
 
-var AppHelpTemplate = `## NAME
+var appHelpTemplate = `## NAME
 **{{.HelpName}}** -- {{.Usage}}
 
 ## USAGE
@@ -105,7 +105,7 @@ func main() {
 	cli.VersionPrinter = func(c *cli.Context) {
 		version.Command(c)
 	}
-	cli.AppHelpTemplate = AppHelpTemplate
+	cli.AppHelpTemplate = appHelpTemplate
 	cli.SubcommandHelpTemplate = usage.SubcommandHelpTemplate
 	cli.CommandHelpTemplate = usage.CommandHelpTemplate
 	cli.HelpPrinter = usage.HelpPrinter

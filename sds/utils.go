@@ -23,16 +23,6 @@ func isValidationContext(name string) bool {
 	return name == ValidationContextName || name == ValidationContextAltName
 }
 
-// getSubject returns a resource name if it's not a validation context name
-func getSubject(r *api.DiscoveryRequest) (string, bool) {
-	for _, name := range r.ResourceNames {
-		if !isValidationContext(name) {
-			return name, true
-		}
-	}
-	return "", false
-}
-
 // getDiscoveryResponse returns the api.DiscoveryResponse for the given request.
 func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, certs []*tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
 	nonce, err := randutil.Hex(64)
