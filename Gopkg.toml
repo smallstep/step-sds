@@ -37,9 +37,9 @@
   name = "github.com/pkg/errors"
   version = "0.8.1"
 
-[[override]]
+[[constraint]]
   name = "github.com/smallstep/certificates"
-  branch = "step-sds"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/smallstep/cli"

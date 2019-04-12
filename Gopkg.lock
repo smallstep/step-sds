@@ -276,8 +276,8 @@
   version = "v1.4.1"
 
 [[projects]]
-  branch = "step-sds"
-  digest = "1:d281ec48ef9cdfc7829a001b599d7397a46fb3886dd59271c23f13ad7d423efb"
+  branch = "master"
+  digest = "1:be6302e3c9152c3041274d363b8e77ef0b1c45919edaefbb06a2df1fc20ba534"
   name = "github.com/smallstep/certificates"
   packages = [
     "api",
@@ -290,7 +290,7 @@
     "server",
   ]
   pruneopts = "UT"
-  revision = "de1114c3c63970950f174daad6aaf022c977a4c3"
+  revision = "6af1e95c5b6b0a4f7a73d6ac1bdeff3a748932c7"
 
 [[projects]]
   branch = "master"
