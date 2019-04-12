@@ -14,7 +14,7 @@ with the url and root certificate of an online
 $ step-sds init --ca-url https://ca.smallstep.com:9000 --root ~/.step/certs/root.crt
 ✔ What would you like to name your new PKI? (e.g. SDS): SDS
 ✔ What do you want your PKI password to be? [leave empty and we'll generate one]:
-✔ What address will your new SDS server listen at? (e.g. :443): :443
+✔ What address will your new SDS server listen at? (e.g. :443): :8443
 ✔ What DNS names or IP addresses would you like to add to your SDS server? (e.g. sds.smallstep.com[,1.1.1.1,etc.]): sds.smallstep.com
 ✔ What would you like to name your SDS client certificate? (e.g. envoy.smallstep.com): envoy.smallstep.com
 ✔ What do you want your certificates password to be? [leave empty and we'll generate one]:
@@ -64,6 +64,59 @@ step certificate create --profile leaf --ca int.crt --ca-key int.key --no-passwo
 step certificate bundle envoy.pem int.crt envoy.crt
 ```
 
+## Running the SDS server
+
+With the PKI and configuration file created in the initialization, we can start
+the server using the `step-sds run` command:
+
+```sh
+$ bin/step-sds run ~/.step/config/sds.json
+Please enter the password to decrypt the provisioner key:
+Please enter the password to decrypt /Users/mariano/.step/sds/sds_server_key:
+INFO[0002] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:19:37-07:00"
+```
+
+By default it ask you for the password to decrypt the provisioner key, and for
+the certificate key password if this is encrypted. You can avoid the prompts
+using `--password-file` and `--provisioner-password-file` flags.
+
+```
+$ bin/step-sds run ~/.step/config/sds.json --password-file /run/secrets/key.password --provisioner-password-file /run/secrets/provisioner.password
+INFO[0000] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:21:59-07:00"
+```
+
+Or you can always write them in the sds.json:
+
+```json
+{
+   "network": "tcp",
+   "address": ":8443",
+   "root": "/home/user/.step/sds/root_ca.crt",
+   "crt": "/home/user/.step/sds/sds_server.crt",
+   "key": "/home/user/.step/sds/sds_server_key",
+   "password": "[my-certificate-key-password]",
+   "authorizedIdentity": "envoy.smallstep.com",
+   "authorizedFingerprint": "8597a5d0b86f4a630f64fbb903b613ceb04756319a156bb6a6faed95394040ff",
+   "provisioner": {
+      "issuer": "mariano@smallstep.com",
+      "kid": "jO37dtDbku-Qnabs5VR0Yw6YFFv9weA18dp3htvdEjs",
+      "ca-url": "https://ca.smallstep.com:9000",
+      "root": "/home/user/.step/certs/root_ca.crt",
+      "password": "[my-provisioner-password]"
+   },
+   "logger": {
+      "format": "text"
+   }
+}
+```
+
+And then just:
+
+```sh
+$ bin/step-sds run ~/.step/config/sds.json
+INFO[0000] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:24:09-07:00"
+```
+
 ## Docker Compose example
 
 In [examples/docker](examples/docker) directory we can find a docker-compose
@@ -77,9 +130,11 @@ examples we are using `hello.smallstep.com` for the frontend server and
 forces the use of a client and certificate to access the backend server, this
 certificate must be signed by the CA server.
 
-To initialize the examples just run:
+To initialize the examples just run from the step-sds main directory:
 
 ```sh
+make docker
+cd examples/docker/
 docker-compose up
 ```
 
