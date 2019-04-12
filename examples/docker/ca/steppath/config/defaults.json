@@ -1,0 +1,6 @@
+{
+   "ca-url": "https://ca",
+   "ca-config": "/Users/mariano/go/src/github.com/smallstep/step-sds/examples/docker/ca/pki/config/ca.json",
+   "fingerprint": "154fa6239ba9839f50b6a17f71addb77e4c478db116a2fbb08256faa786245f5",
+   "root": "/Users/mariano/go/src/github.com/smallstep/step-sds/examples/docker/ca/pki/certs/root_ca.crt"
+}

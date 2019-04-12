@@ -1,0 +1,55 @@
+version: '3.3'
+
+services:
+  ca:
+    build:
+      context: ./ca
+      dockerfile: Dockerfile
+    secrets:
+      - password
+    ports:
+      - "9000:9000"
+    restart: always
+
+  sds:
+    build:
+      context: ./sds
+      dockerfile: Dockerfile
+    depends_on:
+      - ca
+    environment:
+      STEP_CA_URL: "https://ca:9000"
+      STEP_FINGERPRINT: "154fa6239ba9839f50b6a17f71addb77e4c478db116a2fbb08256faa786245f5"
+    secrets:
+      - password
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+
+  envoy:
+    build:
+      context: .
+      dockerfile: ./envoy/Dockerfile
+    depends_on:
+      - ca
+      - sds
+    secrets:
+      - password
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    restart: always
+
+secrets:
+  password:
+    file: ./password.txt

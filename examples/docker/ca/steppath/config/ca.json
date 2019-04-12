@@ -1,0 +1,46 @@
+{
+   "root": "/home/step/certs/root_ca.crt",
+   "federatedRoots": [],
+   "crt": "/home/step/certs/intermediate_ca.crt",
+   "key": "/home/step/secrets/intermediate_ca_key",
+   "address": ":9000",
+   "dnsNames": [ 
+      "ca", 
+      "ca.smallstep.com"
+   ],
+   "logger": {
+      "format": "text"
+   },
+   "authority": {
+      "claims": {
+         "minTLSCertDuration": "1m",
+         "maxTLSCertDuration": "24h",
+         "defaultTLSCertDuration": "1m"
+      },
+      "provisioners": [
+         {
+            "type": "jwk",
+            "name": "sds@smallstep.com",
+            "key": {
+               "use": "sig",
+               "kty": "EC",
+               "kid": "oA1x2nV3yClaf2kQdPOJ_LEzTGw5ow4r2A5SWl3MfMg",
+               "crv": "P-256",
+               "alg": "ES256",
+               "x": "RSYrm1bAJJi4GvEAZEh54mxWUhAwPzikqODPqWwoan0",
+               "y": "4m1tk74nGi0TmdO6xbqwmVtmz1TG6V6kMCGcj6p5d9o"
+            },
+            "encryptedKey": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJjdHkiOiJqd2sranNvbiIsImVuYyI6IkEyNTZHQ00iLCJwMmMiOjEwMDAwMCwicDJzIjoiMnYtTVAzTWJIUXJqREpkOVJzVmpxUSJ9.A2T_-8X5YUiVsjH-RAdnok8Lx53LEdNWM0Mj-DD_ZLMrhGmGhWP_oA.vOEhddCzj_hfclUX.gT6ofpR9EiukrOQsmlpd0pr3RKcmQ-G9NLGn2Pv5vO_Ncyk0WiHko5z-SYDBIRi73AxHrny6up4nZTcmesKzw2cuZKenJ-vZelKKtHm-7788crpNTQcUhBP2tLDxonmf-0bMt0vza6vl3CYlhXh7qslN6YfW1OFwwja9UvDoiotut6jcohYaNVvxwb7j-GpDJkXNQ-ybAPrMh8OLNOIGjugoZxYGWD-4sY-ZO-3qsl43JxjbC-oFE_TcxK4P0tfg88dT6D14EOL767EikJuvu34N6QO_JcvamdwyuVzlCYyvuIkrkQPr8bKdrA8QeLH5Vw4Imo1Y9Tsv9VNZHAI.rFAtSMuB84tv_LT8RDMVAg"
+         }
+      ]
+   },
+   "tls": {
+      "cipherSuites": [
+         "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+         "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+      ],
+      "minVersion": 1.2,
+      "maxVersion": 1.2,
+      "renegotiation": false
+   }
+}

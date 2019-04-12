@@ -1,0 +1,118 @@
+static_resources:
+  listeners:
+  - name: hello-listener
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 10000
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          codec_type: AUTO
+          stat_prefix: ingress_http
+          route_config:
+            name: hello
+            virtual_hosts:
+            - name: hello
+              domains: ["hello.smallstep.com:10000"]
+              routes:
+              - match: {prefix: "/"}
+                route: {cluster: hello-tls}
+              require_tls: EXTERNAL_ONLY
+          http_filters:
+          - name: envoy.router
+      tls_context:
+        common_tls_context:
+          tls_certificate_sds_secret_configs:
+          - name: hello.smallstep.com
+            sds_config:
+              api_config_source:
+                api_type: GRPC
+                grpc_services:
+                  envoy_grpc:
+                    cluster_name: sds_server_mtls
+  - name: internal-listener
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 10001
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          codec_type: AUTO
+          stat_prefix: ingress_http
+          route_config:
+            name: internal
+            virtual_hosts:
+            - name: internal
+              domains: ["internal.smallstep.com:10001"]
+              routes:
+              - match: {prefix: "/"}
+                route: {cluster: internal-mtls}
+              require_tls: ALL
+          http_filters:
+          - name: envoy.router
+      tls_context:
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_2
+            tls_maximum_protocol_version: TLSv1_3
+            cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+          tls_certificate_sds_secret_configs:
+          - name: internal.smallstep.com
+            sds_config:
+              api_config_source:
+                api_type: GRPC
+                grpc_services:
+                  envoy_grpc:
+                    cluster_name: sds_server_mtls
+          validation_context_sds_secret_config:
+            name: trusted_ca
+            sds_config:
+              api_config_source:
+                api_type: GRPC
+                grpc_services:
+                  envoy_grpc:
+                    cluster_name: sds_server_mtls
+        require_client_certificate: true
+  clusters:
+  - name: hello-tls
+    connect_timeout: 0.25s
+    type: strict_dns
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: frontend
+        port_value: 8080
+  - name: internal-mtls
+    connect_timeout: 0.25s
+    type: strict_dns
+    lb_policy: round_robin
+    hosts:
+    - socket_address:
+        address: backend
+        port_value: 8080
+  - name: sds_server_mtls
+    connect_timeout: 0.25s
+    type: strict_dns
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: sds_server_mtls
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: sds
+                port_value: 8443
+    tls_context:
+      common_tls_context:
+        tls_certificates:
+          - certificate_chain:
+              filename: /src/sds_client.crt
+            private_key:
+              filename: /src/sds_client_key
+            password:
+              filename: "/run/secrets/password"
