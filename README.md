@@ -71,7 +71,7 @@ examples that initializes a CA, a SDS server, and Envoy proxying request to two
 different servers, we are naming them frontend and backend. The SDS will
 generate certificates and send them to Envoy, the CommonName and DNS names of
 the certificates will be indicated by the `tls_certificate_sds_secret_configs`
-name in the [envoy configuration][examples/docker/envoy/server.yaml]. In our
+name in the [envoy configuration](examples/docker/envoy/server.yaml). In our
 examples we are using `hello.smallstep.com` for the frontend server and
 `internal.smallstep.com` for the backend server. And finally the configuration
 forces the use of a client and certificate to access the backend server, this
