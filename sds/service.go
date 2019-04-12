@@ -45,6 +45,7 @@ type Service struct {
 	stopCh                chan struct{}
 	authorizedIdentity    string
 	authorizedFingerprint string
+	isTCP                 bool
 	logger                *logging.Logger
 }
 
@@ -70,6 +71,7 @@ func New(c Config) (*Service, error) {
 		stopCh:                make(chan struct{}),
 		authorizedIdentity:    c.AuthorizedIdentity,
 		authorizedFingerprint: c.AuthorizedFingerprint,
+		isTCP:                 c.IsTCP(),
 		logger:                logger,
 	}, nil
 }
@@ -240,6 +242,11 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 }
 
 func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest) error {
+	if !srv.isTCP {
+		return nil
+	}
+
+	// TLS validation
 	p, ok := peer.FromContext(ctx)
 	if !ok {
 		return status.Errorf(codes.Internal, "failed to obtain peer for request")

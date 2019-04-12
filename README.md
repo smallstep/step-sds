@@ -1,6 +1,9 @@
 # step-sds
 Secret discovery service (SDS), simplifying the certificate management.
 
+Step SDS server provides supports both mTLS and Unix Domain Sockets
+configuration, use the one that best adapts to your environment.
+
 ## mTLS initialization
 
 ### Using step-sds
@@ -117,6 +120,28 @@ $ bin/step-sds run ~/.step/config/sds.json
 INFO[0000] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:24:09-07:00"
 ```
 
+We can also configure the server using Unix domain socket, if you decide to use
+this configuration the sds.json will look a little bit different as it won't be
+necessary to configure the TLS certificates, and you will only need to set the
+right network (unix), address (with a file path) and a provisioner configured in
+your certificates CA:
+
+```json
+{
+    "network": "unix",
+    "address": "/tmp/sds.unix",
+    "provisioner": {
+       "issuer": "sds@smallstep.com",
+       "kid": "oA1x2nV3yClaf2kQdPOJ_LEzTGw5ow4r2A5SWl3MfMg",
+       "ca-url": "https://ca:9000",
+       "root": "/home/user/.step/certs/root_ca.crt"
+    },
+    "logger": {
+       "format": "text"
+    }
+ }
+ ```
+
 ## Docker Compose example
 
 In [examples/docker](examples/docker) directory we can find a docker-compose
@@ -210,5 +235,17 @@ generated, we will get the message from the backend server:
 
 ```sh
 $ curl --cacert /tmp/certs/root_ca.crt --cert client.crt --key client.key https://internal.smallstep.com:10001
+Hello mTLS!
+```
+
+The docker compose also includes the SDS server configured using unix sockets,
+and we can do the same tests just replacing the ports:
+
+```sh
+$ curl --cacert /tmp/certs/root_ca.crt https://hello.smallstep.com:10010
+Hello TLS!
+$ curl --cacert /tmp/certs/root_ca.crt https://internal.smallstep.com:10011
+curl: (35) error:1401E410:SSL routines:CONNECT_CR_FINISHED:sslv3 alert handshake failure
+$ curl --cacert /tmp/certs/root_ca.crt --cert client.crt --key client.key https://internal.smallstep.com:10011
 Hello mTLS!
 ```

@@ -1,0 +1,13 @@
+{
+    "network": "unix",
+    "address": "/tmp/sds.unix",
+    "provisioner": {
+       "issuer": "sds@smallstep.com",
+       "kid": "oA1x2nV3yClaf2kQdPOJ_LEzTGw5ow4r2A5SWl3MfMg",
+       "ca-url": "https://ca:9000",
+       "root": "/root/.step/certs/root_ca.crt"
+    },
+    "logger": {
+       "format": "text"
+    }
+ }

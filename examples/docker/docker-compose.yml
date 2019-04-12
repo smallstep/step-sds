@@ -36,6 +36,7 @@ services:
       dockerfile: Dockerfile
     restart: always
 
+  # Envoy connecting to SDS using mTLS
   envoy:
     build:
       context: .
@@ -48,6 +49,24 @@ services:
     ports:
       - "10000:10000"
       - "10001:10001"
+    restart: always
+
+  # Envoy connecting to SDS using unix sockets
+  envoy-sds:
+    build:
+      context: .
+      dockerfile: ./envoy-sds/Dockerfile
+    depends_on:
+      - ca
+      - sds
+    environment:
+      STEP_CA_URL: "https://ca:9000"
+      STEP_FINGERPRINT: "154fa6239ba9839f50b6a17f71addb77e4c478db116a2fbb08256faa786245f5"
+    secrets:
+      - password
+    ports:
+      - "10010:10010"
+      - "10011:10011"
     restart: always
 
 secrets:
