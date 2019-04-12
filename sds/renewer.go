@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/api"
-	"github.com/smallstep/certificates/authority/provisioner"
 	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/cli/jose"
 	"golang.org/x/net/http2"
@@ -118,10 +117,6 @@ func (s *secretRenewer) sign(token string) (*tls.Certificate, *http.Transport, e
 	if err != nil {
 		return nil, nil, err
 	}
-
-	notAfter := provisioner.TimeDuration{}
-	notAfter.SetDuration(61 * time.Second)
-	req.NotAfter = notAfter
 
 	sign, err := s.client.Sign(req)
 	if err != nil {
