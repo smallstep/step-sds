@@ -262,7 +262,6 @@ func TestService_StreamSecrets(t *testing.T) {
 							if isValidationContext(secret.Name) {
 								assert.Type(t, &auth.Secret_ValidationContext{}, secret.Type)
 							} else {
-								hasServerCert = true
 								assert.Type(t, &auth.Secret_TlsCertificate{}, secret.Type)
 							}
 						}
