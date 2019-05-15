@@ -82,8 +82,8 @@ func newSecretRenewer(tokens []string) (*secretRenewer, error) {
 
 // Stop stops the renewer
 func (s *secretRenewer) Stop() {
-	close(s.renewCh)
 	s.timer.Stop()
+	close(s.renewCh)
 }
 
 // Secrets returns the current secrets.
@@ -107,7 +107,10 @@ func (s *secretRenewer) doRenew() {
 		return
 	}
 	s.timer.Reset(s.renewPeriod)
-	s.renewCh <- s.Secrets()
+	select {
+	case s.renewCh <- s.Secrets():
+	default:
+	}
 }
 
 // Sign signs creates a new CSR ands sends it to the CA to sign it, it returns
@@ -212,27 +215,12 @@ func apiCertToTransport(certs []api.Certificate) (http.RoundTripper, error) {
 	for _, crt := range certs {
 		pool.AddCert(crt.Certificate)
 	}
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig: &tls.Config{
-			MinVersion:               tls.VersionTLS12,
-			PreferServerCipherSuites: true,
-			RootCAs:                  pool,
-		},
-	}
-	if err := http2.ConfigureTransport(tr); err != nil {
-		return nil, errors.Wrap(err, "error configuring transport")
-	}
-	return tr, nil
+
+	return getDefaultTransport(&tls.Config{
+		MinVersion:               tls.VersionTLS12,
+		PreferServerCipherSuites: true,
+		RootCAs:                  pool,
+	})
 }
 
 func getDefaultTLSConfig(sign *api.SignResponse) *tls.Config {
