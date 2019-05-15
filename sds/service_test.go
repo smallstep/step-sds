@@ -36,6 +36,7 @@ func (s *streamServer) Send(r *v2.DiscoveryResponse) error {
 	}
 	return nil
 }
+
 func (s *streamServer) Recv() (*v2.DiscoveryRequest, error) {
 	if s.recv != nil {
 		return s.recv()
@@ -100,6 +101,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 }
+
 func TestService_StreamSecrets(t *testing.T) {
 	ca := caServer(3 * time.Second)
 	defer ca.Close()
