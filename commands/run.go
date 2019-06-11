@@ -55,7 +55,7 @@ $ step-sds $STEPPATH/config/sds.json
 Run the Step SDS and read the passwords from files - this is useful for
 automating deployment:
 '''
-$ step-sds $STEPPATH/config/ca.json \
+$ step-sds $STEPPATH/config/sds.json \
 	--password-file ./certificate-key-password.txt \
 	--provisioner-password-file ./provisioner-password.txt
 '''`,
