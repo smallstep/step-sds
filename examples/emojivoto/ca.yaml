@@ -1,0 +1,272 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: step
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: step-certificates-ca-password
+  namespace: step
+data:
+  password: Um1fQEtCUzQvfnorZTJaZDZHMTI3N1FvfWpAKjslOzg=
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: step-certificates-provisioner-password
+  namespace: step
+data:
+  password: ZzlXWX4wWFc9XClTcEFtPV88e1I0KTxrO0BabyMuKG8=
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: step-certificates-config
+  namespace: step
+  labels:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+    app.kubernetes.io/version: "0.10.0"
+data:
+  ca.json: |
+    {
+      "root": "/home/step/certs/root_ca.crt",
+      "federatedRoots": [],
+      "crt": "/home/step/certs/intermediate_ca.crt",
+      "key": "/home/step/secrets/intermediate_ca_key",
+      "address": ":9000",
+      "dnsNames": [
+          "127.0.0.1",
+          "ca.step",
+          "ca.step.svc.cluster.local",
+          "step-certificates.step.svc.cluster.local"
+      ],
+      "logger": {
+          "format": "json"
+      },
+      "authority": {
+          "provisioners": [
+            {
+                "type": "jwk",
+                "name": "admin",
+                "key": {
+                  "use": "sig",
+                  "kty": "EC",
+                  "kid": "n8LNAAZrrDJWAnEv3MRnq2YOZNb1A_umIkSLSEN5fWg",
+                  "crv": "P-256",
+                  "alg": "ES256",
+                  "x": "WW3ztL4a3-Pks92VV19v7Nz6KDAmdr3Pe_hJGccZpnk",
+                  "y": "5WlAwA8tFHm3noeAhRxDojq2lxtBPdFGYI6zxZBr8NE"
+                },
+                "encryptedKey": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJjdHkiOiJqd2sranNvbiIsImVuYyI6IkEyNTZHQ00iLCJwMmMiOjEwMDAwMCwicDJzIjoiNHUxaXN1ajlDbndLQTEwYzJ5MjJXdyJ9.YgqYuQ4KRbrTSABVT4txGGPGEgUgK2izA9-eT-8tvuHzwhfv65q_Xg.Z4e0RoY-7noMzhVe.4mH-MIc_3XlvefXgQQss5BzYwVKv6hSxkcLLzNoyNhYqZ4jAoCH5HRVewj-jxe2ZiSHy2QkItemraOt__2-eKC_TmIO_eOnAkGan-D3g6gyW8AJkQvk5FUjRDZLxjAFOLvvNe3NgG0lYFwrbvWOvAPKMwHHq9i5NQa8MyWzgtx-QeB5Q_nSq8zAsvHI76BvUYcC7_yuwhemaTdhyDZLsoTH_DsBuiXR1LKtdE8R2oV0i_tG4kI0QdksLmzCA_aCHENQcX6RVymMJtZBxTVMCkZpGs6bAif-goIFFtaBq8iTVrrrdHPyXURP2VUNl5ZUAEu-6YkltXGAMbmnyoZI.EltSVJRacPYBZDrSknWECg"
+            },
+            {
+                "type": "JWK",
+                "name": "step-sds",
+                "key": {
+                  "use": "sig",
+                  "kty": "EC",
+                  "kid": "Z2S-kUYeYrEdDN32RX0zjl1xY-XRtpxudC2hmplgK6U",
+                  "crv": "P-256",
+                  "alg": "ES256",
+                  "x": "jr51e1ue8qjrY3-WsXBkW-63T-62P2x-zMzlbvIdpsU",
+                  "y": "nXEZkyEXWRE08AJx7MwEgOpDILYzeGN-RTiXLazrsAU"
+                },
+                "claims":{
+                  "minTLSCertDuration": "1h",
+                  "maxTLSCertDuration": "2160h",
+                  "defaultTLSCertDuration": "24h"
+                },
+                "encryptedKey": "eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJjdHkiOiJqd2sranNvbiIsImVuYyI6IkEyNTZHQ00iLCJwMmMiOjEwMDAwMCwicDJzIjoiUnNxeWdTV1RHc2x4Y253eWFiTldSdyJ9.hrdLlGFgZAAGP1dL1rWR9_NKGRIAojEqxTQpmgUZvNbrgMMmK7tqMQ.K8oXCGaAuhmPGLGL.kUHnACLoOsCJA2-Fxg42ebdOMg6Z8tM9rYtMCEs20zc4sfCt9jPcqhwaavN96d8qesYMeVv7gtZjB8BIzCMWvIqDRFQuAjRkBoZ-ex8gB5s87fP4I7nReWcHwFkn_7mgo3utghoG9Kax3QeeqRBQemDKNt2kJDWB8B92pmriCH_gcImp-jA977rvDMeZUMoeT5EASkXPREp2w5bVvABieDP8enFygcoo94doaC_nLG8MktlHSf_pa4QPa_jJhK585826V1fM8k-aPsaUgMVsDp6TUYDWQN8zjbJpxww-1tu_Teh2AJbjN_3C5stsX2SmMPfzadHdN6ZjTek_hLM.TAljlmdLnF8XVwBiygqiCA"
+            }
+          ]
+      },
+      "tls": {
+          "cipherSuites": [
+            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+          ],
+          "minVersion": 1.2,
+          "maxVersion": 1.2,
+          "renegotiation": false
+      }
+    }
+  defaults.json: |
+    {
+      "ca-url": "https://127.0.0.1:9000",
+      "ca-config": "/home/step/config/ca.json",
+      "fingerprint": "69e1c10c9cd56c2239ea02c87d2ab1900fbe2ebd64adf47d308f0f2c3502d662",
+      "root": "/home/step/certs/root_ca.crt"
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: step-certificates-certs
+  namespace: step
+  labels:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+    app.kubernetes.io/version: "0.10.0"
+data:
+  root_ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIBhTCCASugAwIBAgIQTiiy0M/WWuVz2cDakLykdzAKBggqhkjOPQQDAjAhMR8w
+    HQYDVQQDExZTbWFsbHN0ZXAgVGVzdCBSb290IENBMB4XDTE5MDcxMjIyMTQxNFoX
+    DTI5MDcwOTIyMTQxNFowITEfMB0GA1UEAxMWU21hbGxzdGVwIFRlc3QgUm9vdCBD
+    QTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNsTsgcRwTakVB+ouxeWzefBaLxu
+    hq/7d4qLbGw5pGixG0f6kN4HtIVxjZru+ABRL3PjKWUffXWiJD8XK2/QJSmjRTBD
+    MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMB0GA1UdDgQWBBSF
+    idiUKAm0h3qnuYHq4MqgpzZsODAKBggqhkjOPQQDAgNIADBFAiEAwwKqV1AxH4ss
+    U69xQ6ZYIjv6l7xLWkFwDaZQXFtLsyYCIBuUpyIHlZBA0Vp5TPZgdiXIpcIrr8+z
+    5bpQRw86QnPY
+    -----END CERTIFICATE-----
+  intermediate_ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIBsDCCAVWgAwIBAgIRAOhKZteFJyboDLqP0LeEi/0wCgYIKoZIzj0EAwIwITEf
+    MB0GA1UEAxMWU21hbGxzdGVwIFRlc3QgUm9vdCBDQTAeFw0xOTA3MTIyMjE0MTRa
+    Fw0yOTA3MDkyMjE0MTRaMCkxJzAlBgNVBAMTHlNtYWxsc3RlcCBUZXN0IEludGVy
+    bWVkaWF0ZSBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKF3+B1wCjoEfdw8
+    JrJ9vk9r4g2IfR39rQCIBvmjRT1KrTDYeEaJzFo5j2z03CvKI6LvRA4L4MKibeGI
+    urMTy5OjZjBkMA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEAMB0G
+    A1UdDgQWBBRPOB1eCqr5WFOLMmKv+uVDX73Q6TAfBgNVHSMEGDAWgBSFidiUKAm0
+    h3qnuYHq4MqgpzZsODAKBggqhkjOPQQDAgNJADBGAiEAvpUD1HN7Z1bc7MeJTh0v
+    tSfhz9xcACF8VrTm3BSIhL4CIQCXRQftA4hOOdGKnO3VNJs4DfbYmcVHSQuVvYXZ
+    kjOkiQ==
+    -----END CERTIFICATE-----
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: step-certificates-secrets
+  namespace: step
+  labels:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+    app.kubernetes.io/version: "0.10.0"
+data:
+  root_ca_key: |
+    -----BEGIN EC PRIVATE KEY-----
+    Proc-Type: 4,ENCRYPTED
+    DEK-Info: AES-256-CBC,5f1a72d122cd30a2220bf02fc5a2782d
+
+    nP2JSaCPfmx4909sb5h3p8GVmC3uOEm5pNEaCU6Fy8GBPDsrYeF6YgA79gDdauYQ
+    IVoH0z1Gn3aoyXLWvCbJQBZRMy+URFBei6hVRDMe1oJ+o9V0DSIfiY3UxSLE4Pn2
+    GUJlg4KKnp4M/eAiI9bcqvt2ofJFWgU3J7zxum8kLAU=
+    -----END EC PRIVATE KEY-----
+  intermediate_ca_key: |
+    -----BEGIN EC PRIVATE KEY-----
+    Proc-Type: 4,ENCRYPTED
+    DEK-Info: AES-256-CBC,522670fcc3c7139dd492c364259451f9
+
+    GNWecEKpw/V5kvf7E3/7VDQvekge0Th6Deautctr59L1+wSIteF4ZBtOX8E6rKJj
+    Cqy341FG2hCmedjG4cAdxwXzwPA3rWYuG944v1ORouOfPrCRdyoaPcGVbYXsmJ/z
+    apGn5KtfyrEPBPlZoBPaNriGX8hRQsh5zj/hVCSzI4M=
+    -----END EC PRIVATE KEY-----
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca
+  namespace: step
+  labels:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+    app.kubernetes.io/version: "0.10.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: 9000
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: step-certificates
+  namespace: step
+  labels:
+    app.kubernetes.io/name: step-certificates
+    app.kubernetes.io/instance: step-certificates
+    app.kubernetes.io/version: "0.10.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: step-certificates
+      app.kubernetes.io/instance: step-certificates
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: step-certificates
+        app.kubernetes.io/instance: step-certificates
+    spec:
+      containers:
+        - name: step-certificates
+          image: "smallstep/step-ca:0.10.0"
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/local/bin/step-ca", 
+            "--password-file", "/home/step/secrets/passwords/password",
+            "/home/step/config/ca.json"]
+          env:
+          - name: NAMESPACE
+            value: "step"
+          ports:
+            - name: https
+              containerPort: 9000
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 5
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTPS
+          readinessProbe:
+            initialDelaySeconds: 5
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTPS
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 10m
+              memory: 10Mi            
+          volumeMounts:
+          - name: certs
+            mountPath: /home/step/certs
+            readOnly: true
+          - name: config
+            mountPath: /home/step/config
+            readOnly: true
+          - name: secrets
+            mountPath: /home/step/secrets
+            readOnly: true
+          - name: ca-password
+            mountPath: /home/step/secrets/passwords
+            readOnly: true
+          securityContext:
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+      volumes:
+      - name: certs
+        configMap:
+          name: step-certificates-certs
+      - name: config
+        configMap:
+          name: step-certificates-config
+      - name: secrets
+        configMap:
+          name: step-certificates-secrets
+      - name: ca-password
+        secret:
+          secretName: step-certificates-ca-password

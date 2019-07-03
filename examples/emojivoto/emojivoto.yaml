@@ -1,0 +1,672 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: emojivoto
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: emoji
+  namespace: emojivoto
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: voting
+  namespace: emojivoto
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: web
+  namespace: emojivoto
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: step-sds-secrets
+  namespace: emojivoto
+data:
+  password: ZzlXWX4wWFc9XClTcEFtPV88e1I0KTxrO0BabyMuKG8=
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: step-sds-certs
+  namespace: emojivoto
+data:
+  root_ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIBhTCCASugAwIBAgIQTiiy0M/WWuVz2cDakLykdzAKBggqhkjOPQQDAjAhMR8w
+    HQYDVQQDExZTbWFsbHN0ZXAgVGVzdCBSb290IENBMB4XDTE5MDcxMjIyMTQxNFoX
+    DTI5MDcwOTIyMTQxNFowITEfMB0GA1UEAxMWU21hbGxzdGVwIFRlc3QgUm9vdCBD
+    QTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNsTsgcRwTakVB+ouxeWzefBaLxu
+    hq/7d4qLbGw5pGixG0f6kN4HtIVxjZru+ABRL3PjKWUffXWiJD8XK2/QJSmjRTBD
+    MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMB0GA1UdDgQWBBSF
+    idiUKAm0h3qnuYHq4MqgpzZsODAKBggqhkjOPQQDAgNIADBFAiEAwwKqV1AxH4ss
+    U69xQ6ZYIjv6l7xLWkFwDaZQXFtLsyYCIBuUpyIHlZBA0Vp5TPZgdiXIpcIrr8+z
+    5bpQRw86QnPY
+    -----END CERTIFICATE-----
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: step-sds-config
+  namespace: emojivoto
+data:
+  sds.json: |
+    {
+      "network": "unix",
+      "address": "/tmp/sds.unix",
+      "provisioner": {
+        "issuer": "step-sds",
+        "kid": "Z2S-kUYeYrEdDN32RX0zjl1xY-XRtpxudC2hmplgK6U",
+        "ca-url": "https://ca.step.svc.cluster.local",
+        "root": "/run/step/certs/root_ca.crt"
+      },
+      "logger": {
+        "format": "json"
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-web-config
+  namespace: emojivoto
+data:
+  server.yaml: |
+    static_resources:
+      listeners:
+      - name: web-svc-listener
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 443
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            config:
+              codec_type: AUTO
+              stat_prefix: ingress_http
+              route_config:
+                name: web-svc
+                virtual_hosts:
+                - name: web-svc
+                  domains: ["*"]
+                  routes:
+                  - match: {prefix: "/"}
+                    route: {cluster: web-svc}
+                  require_tls: EXTERNAL_ONLY
+              http_filters:
+              - name: envoy.router
+          tls_context:
+            common_tls_context:
+              tls_certificate_sds_secret_configs:
+              - name: web-svc.emojivoto
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                      envoy_grpc:
+                        cluster_name: sds_server_uds
+      - name: grpc-egress
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 8000
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            config:
+              codec_type: AUTO
+              stat_prefix: grpc-egress
+              route_config:
+                name: grpc-egress
+                virtual_hosts:
+                - name: grpc-egress
+                  domains: ["*"]
+                  routes:
+                  - match: 
+                      prefix: "/emojivoto.v1.EmojiService/"
+                    route:
+                      cluster: emoji-svc
+                      host_rewrite: emoji-svc.emojivoto
+                  - match: 
+                      prefix: "/emojivoto.v1.VotingService/"
+                    route:
+                      cluster: voting-svc
+                      host_rewrite: voting-svc.emojivoto
+                  require_tls: NONE
+                request_headers_to_add:
+                - header: {key: "x-forwarded-proto", value: "https"}
+                  append: false
+              http_filters:
+              - name: envoy.router
+      clusters:
+      - name: web-svc
+        connect_timeout: 0.25s
+        type: strict_dns
+        lb_policy: round_robin
+        load_assignment:
+          cluster_name: envoy
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: localhost
+                    port_value: 8080
+      - name: emoji-svc
+        connect_timeout: 5s
+        type: strict_dns
+        lb_policy: round_robin
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: envoy
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: emoji-svc.emojivoto
+                    port_value: 443
+        tls_context:
+          sni: web-svc.emojivoto
+          common_tls_context:
+            tls_params:
+              tls_minimum_protocol_version: TLSv1_2
+              tls_maximum_protocol_version: TLSv1_3
+              cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+            tls_certificate_sds_secret_configs:
+            - name: web-svc.emojivoto
+              sds_config:
+                api_config_source:
+                  api_type: GRPC
+                  grpc_services:
+                    envoy_grpc:
+                      cluster_name: sds_server_uds
+            validation_context_sds_secret_config:
+              name: trusted_ca
+              sds_config:
+                api_config_source:
+                  api_type: GRPC
+                  grpc_services:
+                    envoy_grpc:
+                      cluster_name: sds_server_uds
+            
+      - name: voting-svc
+        connect_timeout: 5s
+        type: strict_dns
+        lb_policy: round_robin
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: envoy
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: voting-svc.emojivoto
+                    port_value: 443
+        tls_context:
+          sni: voting-svc.emojivoto
+          common_tls_context:
+            tls_params:
+              tls_minimum_protocol_version: TLSv1_2
+              tls_maximum_protocol_version: TLSv1_3
+              cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+            tls_certificate_sds_secret_configs:
+            - name: web-svc.emojivoto
+              sds_config:
+                api_config_source:
+                  api_type: GRPC
+                  grpc_services:
+                    envoy_grpc:
+                      cluster_name: sds_server_uds
+            validation_context_sds_secret_config:
+              name: trusted_ca
+              sds_config:
+                api_config_source:
+                  api_type: GRPC
+                  grpc_services:
+                    envoy_grpc:
+                      cluster_name: sds_server_uds
+      - name: sds_server_uds
+        connect_timeout: 0.25s
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: sds_server_uds
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  pipe:
+                    path: /tmp/sds.unix
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-emoji-config
+  namespace: emojivoto
+data:
+  server.yaml: |
+    static_resources:
+      listeners:
+      - name: emoji-svc-listener
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 443
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            config:
+              codec_type: AUTO
+              stat_prefix: ingress_http
+              route_config:
+                name: emoji-svc
+                virtual_hosts:
+                - name: emoji-svc
+                  domains: ["*"]
+                  routes:
+                  - match: {prefix: "/"}
+                    route: {cluster: emoji-svc}
+                  require_tls: EXTERNAL_ONLY
+              http_filters:
+              - name: envoy.router
+          tls_context:
+            require_client_certificate: true
+            common_tls_context:
+              alpn_protocols: "h2"
+              tls_certificate_sds_secret_configs:
+              - name: emoji-svc.emojivoto
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                      envoy_grpc:
+                        cluster_name: sds_server_uds
+              validation_context_sds_secret_config:
+                name: trusted_ca
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                      envoy_grpc:
+                        cluster_name: sds_server_uds
+      clusters:
+      - name: emoji-svc
+        connect_timeout: 0.25s
+        type: strict_dns
+        lb_policy: round_robin
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: envoy
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: localhost
+                    port_value: 8080
+      - name: sds_server_uds
+        connect_timeout: 0.25s
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: sds_server_uds
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  pipe:
+                    path: /tmp/sds.unix
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-voting-config
+  namespace: emojivoto
+data:
+  server.yaml: |
+    static_resources:
+      listeners:
+      - name: voting-svc-listener
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 443
+        filter_chains:
+        - filters:
+          - name: envoy.http_connection_manager
+            config:
+              codec_type: AUTO
+              stat_prefix: ingress_http
+              route_config:
+                name: voting-svc
+                virtual_hosts:
+                - name: voting-svc
+                  domains: ["*"]
+                  routes:
+                  - match: {prefix: "/"}
+                    route: {cluster: voting-svc}
+                  require_tls: EXTERNAL_ONLY
+              http_filters:
+              - name: envoy.router
+          tls_context:
+            require_client_certificate: true
+            common_tls_context:
+              alpn_protocols: "h2"
+              tls_certificate_sds_secret_configs:
+              - name: voting-svc.emojivoto
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                      envoy_grpc:
+                        cluster_name: sds_server_uds
+              validation_context_sds_secret_config:
+                name: trusted_ca
+                sds_config:
+                  api_config_source:
+                    api_type: GRPC
+                    grpc_services:
+                      envoy_grpc:
+                        cluster_name: sds_server_uds
+      clusters:
+      - name: voting-svc
+        connect_timeout: 0.25s
+        type: strict_dns
+        lb_policy: round_robin
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: envoy
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: localhost
+                    port_value: 8080
+      - name: sds_server_uds
+        connect_timeout: 0.25s
+        http2_protocol_options: {}
+        load_assignment:
+          cluster_name: sds_server_uds
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  pipe:
+                    path: /tmp/sds.unix
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: emoji
+  namespace: emojivoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emoji-svc
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: emoji-svc
+    spec:
+      serviceAccountName: emoji
+      containers:
+      - name: emoji-svc
+        image: localhost:5000/emojivoto:latest
+        imagePullPolicy: Always
+        command: ["entrypoint.sh", "emojivoto-emoji-svc"]
+        env:
+        - name: GRPC_PORT
+          value: "8080"
+        ports:
+        - name: grpc
+          containerPort: 8080
+        - name: grpcs
+          containerPort: 443
+        resources:
+          requests:
+            cpu: 100m
+        volumeMounts:
+          - name: certs
+            mountPath: /run/step/certs
+            readOnly: true
+          - name: config
+            mountPath: /run/step/config
+            readOnly: true
+          - name: secrets
+            mountPath: /run/step/secrets
+            readOnly: true
+          - name: envoy-config
+            mountPath: /run/envoy
+            readOnly: true
+      volumes:
+      - name: certs
+        configMap:
+          name: step-sds-certs
+      - name: config
+        configMap:
+          name: step-sds-config
+      - name: envoy-config
+        configMap:
+          name: envoy-emoji-config
+      - name: secrets
+        secret:
+          secretName: step-sds-secrets
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emoji-svc
+  namespace: emojivoto
+spec:
+  selector:
+    app: emoji-svc
+  clusterIP: None
+  ports:
+  - name: grpc
+    port: 443
+    targetPort: 443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: voting
+  namespace: emojivoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voting-svc
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: voting-svc
+    spec:
+      serviceAccountName: voting
+      containers:
+      - name: voting-svc
+        image: localhost:5000/emojivoto:latest
+        imagePullPolicy: Always
+        command: ["entrypoint.sh", "emojivoto-voting-svc"]
+        env:
+        - name: GRPC_PORT
+          value: "8080"
+        ports:
+        - name: grpc
+          containerPort: 8080
+        - name: grpcs
+          containerPort: 443
+        resources:
+          requests:
+            cpu: 100m
+        volumeMounts:
+          - name: certs
+            mountPath: /run/step/certs
+            readOnly: true
+          - name: config
+            mountPath: /run/step/config
+            readOnly: true
+          - name: secrets
+            mountPath: /run/step/secrets
+            readOnly: true
+          - name: envoy-config
+            mountPath: /run/envoy
+            readOnly: true
+      volumes:
+      - name: certs
+        configMap:
+          name: step-sds-certs
+      - name: config
+        configMap:
+          name: step-sds-config
+      - name: envoy-config
+        configMap:
+          name: envoy-voting-config
+      - name: secrets
+        secret:
+          secretName: step-sds-secrets
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-svc
+  namespace: emojivoto
+spec:
+  selector:
+    app: voting-svc
+  clusterIP: None
+  ports:
+  - name: grpc
+    port: 443
+    targetPort: 443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: web
+  namespace: emojivoto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-svc
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: web-svc
+    spec:
+      serviceAccountName: web
+      containers:
+      - name: web-svc
+        image: localhost:5000/emojivoto:latest
+        imagePullPolicy: Always
+        command: ["entrypoint.sh", "emojivoto-web"]
+        env:
+        - name: WEB_PORT
+          value: "8080"
+        - name: EMOJISVC_HOST
+          value: "localhost:8000"
+        - name: VOTINGSVC_HOST
+          value: "localhost:8000"
+        - name: INDEX_BUNDLE
+          value: "dist/index_bundle.js"
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 443
+        resources:
+          requests:
+            cpu: 100m
+        volumeMounts:
+          - name: certs
+            mountPath: /run/step/certs
+            readOnly: true
+          - name: config
+            mountPath: /run/step/config
+            readOnly: true
+          - name: secrets
+            mountPath: /run/step/secrets
+            readOnly: true
+          - name: envoy-config
+            mountPath: /run/envoy
+            readOnly: true
+      volumes:
+      - name: certs
+        configMap:
+          name: step-sds-certs
+      - name: config
+        configMap:
+          name: step-sds-config
+      - name: envoy-config
+        configMap:
+          name: envoy-web-config
+      - name: secrets
+        secret:
+          secretName: step-sds-secrets
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: emojivoto
+spec:
+  type: ClusterIP
+  clusterIP: "10.152.183.176"
+  selector:
+    app: web-svc
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   creationTimestamp: null
+#   name: vote-bot
+#   namespace: emojivoto
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: vote-bot
+#   strategy: {}
+#   template:
+#     metadata:
+#       creationTimestamp: null
+#       labels:
+#         app: vote-bot
+#     spec:
+#       containers:
+#       - name: vote-bot
+#         image: localhost:5000/emojivoto:latest
+#         imagePullPolicy: Always
+#         command: ["emojivoto-vote-bot"]
+#         env:
+#         - name: WEB_HOST
+#           value: "web-svc.emojivoto:8080"
+#         resources:
+#           requests:
+#             cpu: 10m
+# status: {}
+# ---
