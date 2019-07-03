@@ -249,3 +249,115 @@ curl: (35) error:1401E410:SSL routines:CONNECT_CR_FINISHED:sslv3 alert handshake
 $ curl --cacert /tmp/certs/root_ca.crt --cert client.crt --key client.key https://internal.smallstep.com:10011
 Hello mTLS!
 ```
+
+# Emojivoto example
+
+The [examples/emojivoto](examples/emojivoto) directory contains an example of
+using envoy, step-sds and step-certificates on a simple microservice application
+that allows users to vote for their favorite emoji, and tracks votes received on
+a leaderboard. This example uses Buoyant's
+[emojivoto](https://github.com/BuoyantIO/emojivoto) as its basis.
+
+The application is composed of the following 3 services:
+
+* emojivoto-web: Web frontend and REST API
+* emojivoto-emoji-svc: gRPC API for finding and listing emoji
+* emojivoto-voting-svc: gRPC API for voting and leaderboard
+
+Besides using gRPC, the application doesn't support TLS certificates, but we're
+going to use envoy and step-sds as a simple service mesh that will handle the
+communications between services using (m)TLS.
+
+In our example all the services will be behind ingress proxy and a TLS
+certificate will be available for all of them. Both gRPC services will require a
+client certificate from our certificate authority, so only mTLS connections will
+be allowed. The web service that is the one connecting to the gRPC services will
+use an egress proxy in Envoy with a client certificate, so it will be able to
+connect to it.
+
+The emojivoto example uses kubernetes, so you will need to have access to a
+kubernetes cluster, if you don't
+[minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) or
+[docker](https://www.docker.com) provides you with one.
+
+to run the example you just need to run the following commands:
+
+```sh
+$ cd examples/emojivoto
+$ make
+kubectl apply -f ca.yaml
+namespace/step created
+secret/step-certificates-ca-password created
+secret/step-certificates-provisioner-password created
+configmap/step-certificates-config created
+configmap/step-certificates-certs created
+configmap/step-certificates-secrets created
+service/ca created
+deployment.apps/step-certificates created
+sleep 2
+kubectl -n step wait --for=condition=Ready -l app.kubernetes.io/name=step-certificates pod
+pod/step-certificates-6fc86d5689-spzvv condition met
+kubectl apply -f emojivoto.yaml
+namespace/emojivoto created
+serviceaccount/emoji created
+serviceaccount/voting created
+serviceaccount/web created
+secret/step-sds-secrets created
+configmap/step-sds-certs created
+configmap/step-sds-config created
+configmap/envoy-web-config created
+configmap/envoy-emoji-config created
+configmap/envoy-voting-config created
+deployment.apps/emoji created
+service/emoji-svc created
+deployment.apps/voting created
+service/voting-svc created
+deployment.apps/web created
+service/web-svc created
+```
+
+This will install step-certificates as a certificate authority in the step
+namespace and the emojivoto services in the namespace with the same name. To
+test it you will need to edit your hosts file and point `web-svc.emojivoto` to
+the ClusterIP of the `web-svc` service, and then just go to
+https://web-svc.emojivoto. 
+
+The certificate of our web app is signed by our CA and you will see the unsafe
+warning. If you want to avoid it you can always install the root certificate in
+your environment:
+
+```sh
+$ cat <<EOF > /tmp/root_ca.crt
+-----BEGIN CERTIFICATE-----
+MIIBhTCCASugAwIBAgIQTiiy0M/WWuVz2cDakLykdzAKBggqhkjOPQQDAjAhMR8w
+HQYDVQQDExZTbWFsbHN0ZXAgVGVzdCBSb290IENBMB4XDTE5MDcxMjIyMTQxNFoX
+DTI5MDcwOTIyMTQxNFowITEfMB0GA1UEAxMWU21hbGxzdGVwIFRlc3QgUm9vdCBD
+QTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNsTsgcRwTakVB+ouxeWzefBaLxu
+hq/7d4qLbGw5pGixG0f6kN4HtIVxjZru+ABRL3PjKWUffXWiJD8XK2/QJSmjRTBD
+MA4GA1UdDwEB/wQEAwIBBjASBgNVHRMBAf8ECDAGAQH/AgEBMB0GA1UdDgQWBBSF
+idiUKAm0h3qnuYHq4MqgpzZsODAKBggqhkjOPQQDAgNIADBFAiEAwwKqV1AxH4ss
+U69xQ6ZYIjv6l7xLWkFwDaZQXFtLsyYCIBuUpyIHlZBA0Vp5TPZgdiXIpcIrr8+z
+5bpQRw86QnPY
+-----END CERTIFICATE-----
+EOF
+$ step certificate install /tmp/root_ca.crt
+Certificate /tmp/root_ca.crt has been installed.
+X.509v3 Root CA Certificate (ECDSA P-256) [Serial: 1038...4951]
+  Subject:     Smallstep Test Root CA
+  Issuer:      Smallstep Test Root CA
+  Valid from:  2019-07-12T22:14:14Z
+          to:  2029-07-09T22:14:14Z
+```
+
+But remember to remove it after your test as this certificate is public and
+anyone can use it:
+
+```sh
+$ step certificate uninstall /tmp/root_ca.crt
+Certificate /tmp/root_ca.crt has been removed.
+X.509v3 Root CA Certificate (ECDSA P-256) [Serial: 1038...4951]
+  Subject:     Smallstep Test Root CA
+  Issuer:      Smallstep Test Root CA
+  Valid from:  2019-07-12T22:14:14Z
+          to:  2029-07-09T22:14:14Z
+```

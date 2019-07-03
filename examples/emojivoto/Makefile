@@ -6,6 +6,8 @@ docker: docker/Dockerfile
 
 apply: 
 	kubectl apply -f ca.yaml
+	sleep 2
+	kubectl -n step wait --for=condition=Ready -l app.kubernetes.io/name=step-certificates pod
 	kubectl apply -f emojivoto.yaml
 
 delete:
