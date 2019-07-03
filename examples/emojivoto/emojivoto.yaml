@@ -422,8 +422,8 @@ spec:
       serviceAccountName: emoji
       containers:
       - name: emoji-svc
-        image: localhost:5000/emojivoto:latest
-        imagePullPolicy: Always
+        image: marianocp/emojivoto:1.0.0
+        imagePullPolicy: IfNotPresent
         command: ["entrypoint.sh", "emojivoto-emoji-svc"]
         env:
         - name: GRPC_PORT
@@ -499,8 +499,8 @@ spec:
       serviceAccountName: voting
       containers:
       - name: voting-svc
-        image: localhost:5000/emojivoto:latest
-        imagePullPolicy: Always
+        image: marianocp/emojivoto:1.0.0
+        imagePullPolicy: IfNotPresent
         command: ["entrypoint.sh", "emojivoto-voting-svc"]
         env:
         - name: GRPC_PORT
@@ -576,8 +576,8 @@ spec:
       serviceAccountName: web
       containers:
       - name: web-svc
-        image: localhost:5000/emojivoto:latest
-        imagePullPolicy: Always
+        image: marianocp/emojivoto:1.0.0
+        imagePullPolicy: IfNotPresent
         command: ["entrypoint.sh", "emojivoto-web"]
         env:
         - name: WEB_PORT
@@ -631,7 +631,6 @@ metadata:
   namespace: emojivoto
 spec:
   type: ClusterIP
-  clusterIP: "10.152.183.176"
   selector:
     app: web-svc
   ports:
@@ -659,8 +658,8 @@ spec:
 #     spec:
 #       containers:
 #       - name: vote-bot
-#         image: localhost:5000/emojivoto:latest
-#         imagePullPolicy: Always
+#         image: marianocp/emojivoto:1.0.0
+#         imagePullPolicy: IfNotPresent
 #         command: ["emojivoto-vote-bot"]
 #         env:
 #         - name: WEB_HOST

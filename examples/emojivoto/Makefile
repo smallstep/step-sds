@@ -1,4 +1,4 @@
-all: docker apply
+all: apply
 
 docker: docker/Dockerfile
 	docker build -t localhost:5000/emojivoto:latest -f docker/Dockerfile docker
