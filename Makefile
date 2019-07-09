@@ -281,7 +281,7 @@ binary-darwin:
 
 define BUNDLE
 	$(q)BUNDLE_DIR=$(BINARY_OUTPUT)$(1)/bundle; \
-	stepName=step-certificates_$(2); \
+	stepName=step-sds_$(2); \
  	mkdir -p $$BUNDLE_DIR $(RELEASE); \
 	TMP=$$(mktemp -d $$BUNDLE_DIR/tmp.XXXX); \
 	trap "rm -rf $$TMP" EXIT INT QUIT TERM; \
@@ -289,7 +289,7 @@ define BUNDLE
 	mkdir -p $$newdir/bin; \
 	cp $(BINARY_OUTPUT)$(1)/bin/$(BINNAME) $$newdir/bin/; \
 	cp README.md $$newdir/; \
-	NEW_BUNDLE=$(RELEASE)/step-certificates_$(2)_$(1)_$(3).tar.gz; \
+	NEW_BUNDLE=$(RELEASE)/step-sds_$(2)_$(1)_$(3).tar.gz; \
 	rm -f $$NEW_BUNDLE; \
     tar -zcvf $$NEW_BUNDLE -C $$TMP $$stepName;
 endef
@@ -312,7 +312,7 @@ artifacts-darwin-tag: bundle-darwin
 
 artifacts-archive-tag:
 	$Q mkdir -p $(RELEASE)
-	$Q git archive v$(VERSION) | gzip > $(RELEASE)/step-certificates.tar.gz
+	$Q git archive v$(VERSION) | gzip > $(RELEASE)/step-sds.tar.gz
 
 artifacts-tag: artifacts-linux-tag artifacts-darwin-tag artifacts-archive-tag
 
