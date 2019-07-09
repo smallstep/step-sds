@@ -1,0 +1,16 @@
+Source: step-sds
+Section: utils
+Priority: optional
+Maintainer: Smallstep Labs, Inc. <techadmin@smallstep.com>
+Build-Depends: debhelper (>= 9), git, bash-completion
+Standards-Version: 4.2.0
+Homepage: https://github.com/smallstep/step-sds
+Vcs-Browser: https://github.com/smallstep/step-sds.git
+Vcs-Git: https://github.com/smallstep/step-sds.git
+
+Package: step-sds
+Architecture: any
+Depends: ${misc:Depends}
+Description: Secret Discovery Service (SDS)
+   step-sds is a gRPC server that implements Envoy's secret discovery service
+   (SDS) to stream TLS certificates to gRPC clients like Envoy.

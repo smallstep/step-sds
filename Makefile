@@ -249,16 +249,16 @@ docker-release: docker-release-candidate docker-push-tag-latest
 #########################################
 
 changelog:
-	$Q echo "step-certificates ($(VERSION)) unstable; urgency=medium" > debian/changelog
+	$Q echo "step-sds ($(VERSION)) unstable; urgency=medium" > debian/changelog
 	$Q echo >> debian/changelog
-	$Q echo "  * See https://github.com/smallstep/certificates/releases" >> debian/changelog
+	$Q echo "  * See https://github.com/smallstep/step-sds/releases" >> debian/changelog
 	$Q echo >> debian/changelog
 	$Q echo " -- Smallstep Labs, Inc. <techadmin@smallstep.com>  $(shell date -uR)" >> debian/changelog
 
 debian: changelog
 	$Q mkdir -p $(RELEASE); \
-	OUTPUT=../step-certificates_*.deb; \
-	rm $$OUTPUT; \
+	OUTPUT=../step-sds_*.deb; \
+	rm -f $$OUTPUT; \
 	dpkg-buildpackage -b -rfakeroot -us -uc && cp $$OUTPUT $(RELEASE)/
 
 distclean: clean
