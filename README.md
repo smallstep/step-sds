@@ -1,17 +1,15 @@
 # step-sds
-Secret discovery service (SDS), simplifying the certificate management.
+The [secret discovery service (SDS)](https://www.envoyproxy.io/docs/envoy/latest/configuration/secret) simplifies certificate management
+and was originally created by the Envoy project to provide a flexible API to deliver secrets/certificates to the Envoy proxy.
 
-Step SDS server provides supports both mTLS and Unix Domain Sockets
-configuration, use the one that best adapts to your environment.
+Step SDS server implements the server-side API of SDS which pushes certificates to the client. Both mTLS and Unix Domain Sockets
+configuration are supported. Use the one that better suits your environment/requirements.
 
 ## mTLS initialization
 
 ### Using step-sds
 
-The easiest way to initialize a PKI to do mTLS between between
-[Envoy](https://www.envoyproxy.io) and our SDS server is to run `step-sds init`,
-with the url and root certificate of an online
-[certificates](https://github.com/smallstep/certificates) CA.
+To use mTLS between [Envoy](https://www.envoyproxy.io) and our SDS server we need to initialize a PKI running with `step-sds init`. We will need the destination url and root certificate of your CA ([step certificates](https://github.com/smallstep/certificates)).
 
 ```sh
 $ step-sds init --ca-url https://ca.smallstep.com:9000 --root ~/.step/certs/root.crt
@@ -39,19 +37,18 @@ You can always generate new certificates or change passwords using step.
 
 The `init` command will generate a root and intermediate certificate, with both
 keys encrypted using the same password. And a server certificate for the
-step-sds (sds_server.crt) and a client certificate for Envoy or the SDS client
-(sds_client.crt), the keys of the SDS server an client will be encrypted with
-another password. It will also generate an initial configuration file. All those
-files will be stored in your `STEPPATH` (just run `step path` to know where).
+step-sds (sds_server.crt) and a client certificate (sds_client.crt) for Envoy to
+be used to connect to the SDS server via mTLS. The SDS server and client keys will be
+encrypted with own password separate from the intermediate/root keys. `init` will also
+generate an initial configuration file. All files generated will be stored in your `STEPPATH` (just run `step path` to know where).
 
-If you want to change the passwords or create your own PKI you can always use
-[step](https://github.com/smallstep/cli) for it.
+If you want to change the passwords or create your own PKI you can leverage the corresponding subcommands available in [step CLI](https://github.com/smallstep/cli).
 
-### Using step
+### Using step CLI
 
-As we mention before we can use [step](https://github.com/smallstep/cli).
-Assuming that the SDS is running on sds.smallstep.com and we name the envoy
-client certificate as envoy.smallstep.com we can just run:
+As we mention before we can use [step CLI](https://github.com/smallstep/cli) in lie of
+the `init`-flow. Assuming that the SDS is running on sds.smallstep.com and we name the
+envoy client certificate as envoy.smallstep.com we can just run:
 
 ```sh
 # Root and intermediate
@@ -69,8 +66,7 @@ step certificate bundle envoy.pem int.crt envoy.crt
 
 ## Running the SDS server
 
-With the PKI and configuration file created in the initialization, we can start
-the server using the `step-sds run` command:
+With the PKI and configuration file ready, we can run the SDS server:
 
 ```sh
 $ bin/step-sds run ~/.step/config/sds.json
@@ -79,16 +75,16 @@ Please enter the password to decrypt /Users/mariano/.step/sds/sds_server_key:
 INFO[0002] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:19:37-07:00"
 ```
 
-By default it ask you for the password to decrypt the provisioner key, and for
-the certificate key password if this is encrypted. You can avoid the prompts
-using `--password-file` and `--provisioner-password-file` flags.
+By default it will ask you for the password to decrypt the provisioner key, and for
+the certificate key password (if encrypted). You can avoid prompts using the `--password-file`
+and `--provisioner-password-file` flags.
 
 ```
 $ bin/step-sds run ~/.step/config/sds.json --password-file /run/secrets/key.password --provisioner-password-file /run/secrets/provisioner.password
 INFO[0000] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:21:59-07:00"
 ```
 
-Or you can always write them in the sds.json:
+Alternatively, to avoid interactive prompts, you can always specify passwords in the `sds.json` config file:
 
 ```json
 {
@@ -120,11 +116,11 @@ $ bin/step-sds run ~/.step/config/sds.json
 INFO[0000] Serving at tcp://[::]:8443 ...                grpc.start_time="2019-04-11T19:24:09-07:00"
 ```
 
-We can also configure the server using Unix domain socket, if you decide to use
-this configuration the sds.json will look a little bit different as it won't be
-necessary to configure the TLS certificates, and you will only need to set the
-right network (unix), address (with a file path) and a provisioner configured in
-your certificates CA:
+SDS clients (such as Envoy) can connect to the server via UNIX domain socket.
+If you decide to use UNIX domain sockets the sds.json configuration file will
+look different as it won't be necessary to configure TLS certificates. Instead,
+you will only need to set the right network type (`unix`), address (file path
+for socket) and a provisioner configured in your certificates CA:
 
 ```json
 {
@@ -142,20 +138,21 @@ your certificates CA:
  }
  ```
 
-## Docker Compose example
+## Docker-Compose example
 
-In [examples/docker](examples/docker) directory we can find a docker-compose
-examples that initializes a CA, a SDS server, and Envoy proxying request to two
-different servers, we are naming them frontend and backend. The SDS will
+In [examples/docker](examples/docker) directory you'll find a docker-compose
+example that initializes a CA, a SDS server, and Envoy proxying request to two
+different servers, `frontend` & `backend` respectively. The SDS `init`-flow will
 generate certificates and send them to Envoy, the CommonName and DNS names of
-the certificates will be indicated by the `tls_certificate_sds_secret_configs`
+the certificates will be specified by the `tls_certificate_sds_secret_configs`
 name in the [envoy configuration](examples/docker/envoy/server.yaml). In our
-examples we are using `hello.smallstep.com` for the frontend server and
-`internal.smallstep.com` for the backend server. And finally the configuration
-forces the use of a client and certificate to access the backend server, this
-certificate must be signed by the CA server.
+example we are using `hello.smallstep.com` for the `frontend` server and
+`internal.smallstep.com` for the `backend` server. The use of a client certificate
+to access the backend server is mandatory. This certificate must be signed by
+the CA server.
 
-To initialize the examples just run from the step-sds main directory:
+Assuming a docker daemon is running you can bring up the example running following
+commands inside the main `step-sds` directory:
 
 ```sh
 make docker
@@ -163,8 +160,8 @@ cd examples/docker/
 docker-compose up
 ```
 
-Once everything is running we can configure our environment to do some tests,
-first we'll need to add the following entries in our `/etc/hosts`.
+Once everything is running we can configure our environment to allow exploration:
+First, we'll need to add the following entries in our `/etc/hosts` file.
 
 ```
 127.0.0.1       ca.smallstep.com
@@ -172,8 +169,8 @@ first we'll need to add the following entries in our `/etc/hosts`.
 127.0.0.1       hello.smallstep.com
 ```
 
-Then we are going to bootstrap certificates configuration in a non-standard
-STEPPATH so we don't mess with our environment:
+Now we bootstrap a step certificates environment in a temporary STEPPATH so
+we won't permanently pollute up our local environment:
 
 ```sh
 $ export STEPPATH=/tmp
@@ -182,8 +179,8 @@ The root certificate has been saved in /tmp/certs/root_ca.crt.
 Your configuration has been saved in /tmp/config/defaults.json.
 ```
 
-The we can do some tests using curl. If we don't use the root certificate we
-will get the well-known error:
+Now we can use curl to connect. If we don't specify the root certificate we
+will get the following well-known error:
 
 ```sh
 $ curl https://hello.smallstep.com:10000
@@ -203,23 +200,23 @@ If you'd like to turn off curl's verification of the certificate, use
 HTTPS-proxy has similar options --proxy-cacert and --proxy-insecure.
 ```
 
-If we pass the `--cacert /tmp/certs/root_ca.crt` flag everything will work as
-expected, and we'll get a response from the frontend server:
+Passing the `--cacert /tmp/certs/root_ca.crt` flag will make it work as
+expected, and we'll get a response from the `frontend` server:
 
 ```sh
 $ curl --cacert /tmp/certs/root_ca.crt https://hello.smallstep.com:10000
 Hello TLS!
 ```
 
-But if we try the same with the backend server we will get an error because a
-mTLS connection is required:
+Trying the same with the `backend` server we will result in an error because
+a mutual TLS connection is required:
 
 ```sh
 $ curl --cacert /tmp/certs/root_ca.crt https://internal.smallstep.com:10001
 curl: (35) error:1401E410:SSL routines:CONNECT_CR_FINISHED:sslv3 alert handshake failure
 ```
 
-We will need to use our CA the generate some client certificates:
+We will need to get a client certificate from our internal CA:
 
 ```sh
 $ step ca certificate client.smallstep.com client.crt client.key
@@ -230,16 +227,17 @@ $ step ca certificate client.smallstep.com client.crt client.key
 ✔ Private Key: client.key
 ```
 
-And then if we try again with curl with the certificates that we've just
-generated, we will get the message from the backend server:
+Now trying curl again with both root & client (we've just generated)
+certificates, we will get a successful response from the `backend` server:
 
 ```sh
 $ curl --cacert /tmp/certs/root_ca.crt --cert client.crt --key client.key https://internal.smallstep.com:10001
 Hello mTLS!
 ```
 
-The docker compose also includes the SDS server configured using unix sockets,
-and we can do the same tests just replacing the ports:
+This docker-compose example also includes a SDS server configuration using UNIX
+domain sockets. Without further modifications we can run the same test sequence
+against a different set of ports:
 
 ```sh
 $ curl --cacert /tmp/certs/root_ca.crt https://hello.smallstep.com:10010
@@ -253,34 +251,35 @@ Hello mTLS!
 # Emojivoto example
 
 The [examples/emojivoto](examples/emojivoto) directory contains an example of
-using envoy, step-sds and step-certificates on a simple microservice application
-that allows users to vote for their favorite emoji, and tracks votes received on
-a leaderboard. This example uses Buoyant's
+using Envoy, [step-sds](https://github.com/smallstep/step-sds) and
+[step certificates](https://github.com/smallstep/certificates) on a simple
+microservice application that allows users to vote for their favorite emoji,
+and tracks votes received on a leaderboard. This example uses Buoyant's
 [emojivoto](https://github.com/BuoyantIO/emojivoto) as its basis.
 
 The application is composed of the following 3 services:
 
-* emojivoto-web: Web frontend and REST API
-* emojivoto-emoji-svc: gRPC API for finding and listing emoji
-* emojivoto-voting-svc: gRPC API for voting and leaderboard
+* `emojivoto-web`: Web frontend and REST API
+* `emojivoto-emoji-svc`: gRPC API for finding and listing emoji
+* `emojivoto-voting-svc`: gRPC API for voting and leaderboard
 
-Besides using gRPC, the application doesn't support TLS certificates, but we're
-going to use envoy and step-sds as a simple service mesh that will handle the
-communications between services using (m)TLS.
+Besides using gRPC, the application does not come with mutual TLS support out
+of the box. We will use Envoy and step-sds as a highly simplified service mesh
+that will handle the communications between services using mutual TLS.
 
-In our example all the services will be behind ingress proxy and a TLS
+In our example, all the services will be behind an ingress proxy and a TLS
 certificate will be available for all of them. Both gRPC services will require a
-client certificate from our certificate authority, so only mTLS connections will
-be allowed. The web service that is the one connecting to the gRPC services will
-use an egress proxy in Envoy with a client certificate, so it will be able to
+client certificate from our internal Certificate Authority, so only mTLS connections
+will be allowed. The web service that is the one connecting to the gRPC services
+will use an egress proxy in Envoy with a client certificate, so it will be able to
 connect to it.
 
 The emojivoto example uses kubernetes, so you will need to have access to a
 kubernetes cluster, if you don't
 [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) or
-[docker](https://www.docker.com) provides you with one.
+[docker](https://www.docker.com) provides you with options.
 
-to run the example you just need to run the following commands:
+Run the following commands to set up this emojivoto example:
 
 ```sh
 $ cd examples/emojivoto
@@ -316,15 +315,29 @@ deployment.apps/web created
 service/web-svc created
 ```
 
-This will install step-certificates as a certificate authority in the step
-namespace and the emojivoto services in the namespace with the same name. To
-test it you will need to edit your hosts file and point `web-svc.emojivoto` to
-the ClusterIP of the `web-svc` service, and then just go to
-https://web-svc.emojivoto. 
+This will install [step certificates](https://github.com/smallstep/certificates) as a
+online Certificate Authority in the step namespace and the emojivoto services in the
+namespace with the same name. To test it locally you will need to edit your `/etc/hosts`
+file and point `web-svc.emojivoto` to the ClusterIP of the `web-svc` service, and then
+just go to `https://web-svc.emojivoto`. Here's how you retrieve the ClusterIP:
 
-The certificate of our web app is signed by our CA and you will see the unsafe
-warning. If you want to avoid it you can always install the root certificate in
-your environment:
+```sh
+$ kubectl get service -n emojivoto web-svc
+NAME      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+web-svc   ClusterIP   10.59.249.130   <none>        443/TCP   1h
+```
+
+In case `web-svc`'s ClusterIP is not route-able (running inside AWS or GCP) you can use `kubectl`
+port forwarding instead. Make sure to point your `/etc/hosts` entry for `web-svc.emojivoto`
+at `127.0.0.1` and run following command:
+
+```sh
+$ kubectl port-forward -n emojivoto service/web-svc --address 127.0.0.1 7443:443
+```
+
+The certificate of our web app is signed by our internal CA and you will see the unsafe
+warning in your browser as its not incuded in local trust stores. If you want to avoid
+the warning message you can always install the root certificate into your trust store:
 
 ```sh
 $ cat <<EOF > /tmp/root_ca.crt
@@ -349,7 +362,8 @@ X.509v3 Root CA Certificate (ECDSA P-256) [Serial: 1038...4951]
           to:  2029-07-09T22:14:14Z
 ```
 
-But remember to remove it after your test as this certificate is public and
+Remember to remove the root certificate from your local trust store after
+local testing as this certificate is public (as part of this repo) and
 anyone can use it:
 
 ```sh
