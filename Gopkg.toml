@@ -23,7 +23,13 @@
 #   non-go = false
 #   go-tests = true
 #   unused-packages = true
+required = [
+  "github.com/golang/lint/golint",
+]
 
+[[constraint]]
+  name = "github.com/golang/lint"
+  revision = "06c8688daad7faa9da5a0c2f163a3d14aac986ca"
 
 [[constraint]]
   name = "github.com/envoyproxy/go-control-plane"

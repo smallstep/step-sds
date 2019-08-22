@@ -88,15 +88,11 @@
   version = "v1.2.1"
 
 [[projects]]
-  branch = "travis-1.9"
-  digest = "1:e8f5d9c09a7209c740e769713376abda388c41b777ba8e9ed52767e21acf379f"
+  digest = "1:4ee452f8994700dcab9e816aef1cb9eb2317218734c6ccf5135746e6c19f3dce"
   name = "github.com/golang/lint"
-  packages = [
-    ".",
-    "golint",
-  ]
+  packages = ["golint"]
   pruneopts = "UT"
-  revision = "883fe33ffc4344bad1ecd881f61afd5ec5d80e0a"
+  revision = "06c8688daad7faa9da5a0c2f163a3d14aac986ca"
 
 [[projects]]
   digest = "1:64c2b533ffd17023738c534548ab2455d7f519bc15ed4225145425ed2222448b"
@@ -376,6 +372,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:0824a2eb250dd552f41daaf471266d085e8e8cabdbff9e4294bc799076e00da7"
+  name = "golang.org/x/lint"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "959b441ac422379a43da2230f62be024250818b0"
+
+[[projects]]
+  branch = "master"
   digest = "1:f90933417f4c9c229b62665ead2db0badd702a731aa4a5c270d41d5d7887d35b"
   name = "golang.org/x/net"
   packages = [
@@ -524,6 +528,7 @@
     "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2",
     "github.com/gogo/googleapis/google/rpc",
     "github.com/gogo/protobuf/types",
+    "github.com/golang/lint/golint",
     "github.com/grpc-ecosystem/go-grpc-middleware",
     "github.com/pkg/errors",
     "github.com/rs/xid",
