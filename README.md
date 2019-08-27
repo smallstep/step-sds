@@ -46,7 +46,7 @@ If you want to change the passwords or create your own PKI you can leverage the 
 
 ### Using step CLI
 
-As we mention before we can use [step CLI](https://github.com/smallstep/cli) in lie of
+As we mention before we can use [step CLI](https://github.com/smallstep/cli) in lieu of
 the `init`-flow. Assuming that the SDS is running on sds.smallstep.com and we name the
 envoy client certificate as envoy.smallstep.com we can just run:
 
