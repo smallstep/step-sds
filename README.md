@@ -336,7 +336,7 @@ $ kubectl port-forward -n emojivoto service/web-svc --address 127.0.0.1 7443:443
 ```
 
 The certificate of our web app is signed by our internal CA and you will see the unsafe
-warning in your browser as its not incuded in local trust stores. If you want to avoid
+warning in your browser as its not included in local trust stores. If you want to avoid
 the warning message you can always install the root certificate into your trust store:
 
 ```sh
