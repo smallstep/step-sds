@@ -55,8 +55,8 @@ type Service struct {
 func New(c Config) (*Service, error) {
 	p, err := ca.NewProvisioner(
 		c.Provisioner.Issuer, c.Provisioner.KeyID,
-		c.Provisioner.CaURL, c.Provisioner.CaRoot,
-		[]byte(c.Provisioner.Password))
+		c.Provisioner.CaURL, []byte(c.Provisioner.Password),
+		ca.WithRootFile(c.Provisioner.CaRoot))
 	if err != nil {
 		return nil, err
 	}
