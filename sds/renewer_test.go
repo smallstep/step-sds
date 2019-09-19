@@ -25,10 +25,10 @@ func Test_secretRenewer(t *testing.T) {
 	defer sr.Stop()
 
 	// Get first certificate
-	secrets := sr.Secrets()
-	assert.Len(t, 1, secrets.Roots)
-	assert.Len(t, 1, secrets.Certificates)
-	crt := secrets.Certificates[0].Leaf
+	secs := sr.Secrets()
+	assert.Len(t, 1, secs.Roots)
+	assert.Len(t, 1, secs.Certificates)
+	crt := secs.Certificates[0].Leaf
 	assert.Equals(t, "foo.smallstep.com", crt.DNSNames[0])
 
 	// Renew multiple times (once every second)
