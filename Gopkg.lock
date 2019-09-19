@@ -528,7 +528,6 @@
     "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2",
     "github.com/gogo/googleapis/google/rpc",
     "github.com/gogo/protobuf/types",
-    "github.com/golang/lint/golint",
     "github.com/grpc-ecosystem/go-grpc-middleware",
     "github.com/pkg/errors",
     "github.com/rs/xid",

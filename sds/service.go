@@ -166,13 +166,13 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 			defer sr.Stop()
 
 			ch = sr.RenewChannel()
-			secrets := sr.Secrets()
-			certs, roots = secrets.Certificates, secrets.Roots
-		case secrets := <-ch:
+			secs := sr.Secrets()
+			certs, roots = secs.Certificates, secs.Roots
+		case secs := <-ch:
 			t1 = time.Now()
 			isRenewal = true
 			versionInfo = srv.versionInfo()
-			certs, roots = secrets.Certificates, secrets.Roots
+			certs, roots = secs.Certificates, secs.Roots
 		case err := <-errCh:
 			t1 = time.Now()
 			if err == io.EOF {
@@ -234,8 +234,8 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 	}
 	defer sr.Stop()
 
-	secrets := sr.Secrets()
-	certs, roots := secrets.Certificates, secrets.Roots
+	secs := sr.Secrets()
+	certs, roots := secs.Certificates, secs.Roots
 	versionInfo := time.Now().UTC().Format(time.RFC3339)
 
 	return getDiscoveryResponse(r, versionInfo, certs, roots)

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 
 	"github.com/sirupsen/logrus"
 )
@@ -140,7 +141,7 @@ func newEntryForCall(ctx context.Context, entry *logrus.Entry, fullMethodString,
 }
 
 func writeLog(ctx context.Context, logger *logrus.Logger, typ interceptorType, requestID, fullMethod string, startTime string, duration time.Duration, grpcErr error) {
-	code := grpc.Code(grpcErr)
+	code := status.Code(grpcErr)
 
 	// Get common fields
 	entry := GetRequestEntry(ctx)

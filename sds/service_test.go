@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc/peer"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -24,6 +23,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
+/*
 type streamServer struct {
 	grpc.ServerStream
 	send func(r *v2.DiscoveryResponse) error
@@ -50,6 +50,7 @@ func (s *streamServer) Recv() (*v2.DiscoveryRequest, error) {
 		ErrorDetail:   nil,
 	}, nil
 }
+*/
 
 func TestNew(t *testing.T) {
 	ca := caServer(60 * time.Second)
@@ -131,10 +132,10 @@ func TestService_StreamSecrets(t *testing.T) {
 
 	// Prepare client
 	ctx := context.Background()
-	dialer := func(string, time.Duration) (net.Conn, error) {
+	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithDialer(dialer), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
@@ -303,10 +304,10 @@ func TestService_FetchSecrets(t *testing.T) {
 
 	// Prepare client
 	ctx := context.Background()
-	dialer := func(string, time.Duration) (net.Conn, error) {
+	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithDialer(dialer), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
