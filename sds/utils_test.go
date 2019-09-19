@@ -409,7 +409,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, v interface{}) {
 }
 
 func caProvisioner(srv *httptest.Server) *ca.Provisioner {
-	p, err := ca.NewProvisioner("sds@smallstep.com", "oA1x2nV3yClaf2kQdPOJ_LEzTGw5ow4r2A5SWl3MfMg", srv.URL, "testdata/root_ca.crt", []byte("password"))
+	p, err := ca.NewProvisioner("sds@smallstep.com", "oA1x2nV3yClaf2kQdPOJ_LEzTGw5ow4r2A5SWl3MfMg", srv.URL, []byte("password"), ca.WithRootFile("testdata/root_ca.crt"))
 	if err != nil {
 		panic(err)
 	}

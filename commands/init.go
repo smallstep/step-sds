@@ -39,6 +39,10 @@ the secret discovery service (SDS)`,
 				Name:  "root",
 				Usage: "The path to the PEM <file> used as the root certificate authority.",
 			},
+			cli.BoolFlag{
+				Name:  "uds",
+				Usage: "Initialize SDS with UNIX domain sockets.",
+			},
 		},
 	})
 }
@@ -56,6 +60,10 @@ func initAction(ctx *cli.Context) error {
 		}
 	}
 
+	if ctx.Bool("uds") {
+		return initUDS(caURL, root)
+	}
+
 	base := filepath.Join(config.StepPath(), "sds")
 	if err := os.MkdirAll(base, 0700); err != nil {
 		return errs.FileError(err, base)
@@ -63,7 +71,7 @@ func initAction(ctx *cli.Context) error {
 
 	configBase := filepath.Join(config.StepPath(), "config")
 	if err := os.MkdirAll(configBase, 0700); err != nil {
-		return errs.FileError(err, base)
+		return errs.FileError(err, configBase)
 	}
 
 	name, err := ui.Prompt("What would you like to name your new PKI? (e.g. SDS)", ui.WithValidateNotEmpty())
@@ -198,6 +206,76 @@ func initAction(ctx *cli.Context) error {
 	ui.Println()
 	ui.Println("Your PKI is ready to go.")
 	ui.Println("You can always generate new certificates or change passwords using step.")
+
+	return nil
+}
+
+func initUDS(caURL, root string) error {
+	configBase := filepath.Join(config.StepPath(), "config")
+	if err := os.MkdirAll(configBase, 0700); err != nil {
+		return errs.FileError(err, configBase)
+	}
+
+	dir, err := ui.Prompt("What directory do you want the UNIX domain socket 'sds.unix' to be? (e.g. /tmp)",
+		ui.WithValidateFunc(func(s string) error {
+			fi, err := os.Stat(s)
+			if err != nil {
+				return errs.FileError(err, s)
+			}
+			if !fi.IsDir() {
+				return errors.Errorf("%s is not a directory", s)
+			}
+			return nil
+		}))
+	if err != nil {
+		return err
+	}
+
+	provisioners, err := pki.GetProvisioners(caURL, root)
+	if err != nil {
+		return err
+	}
+
+	p, err := provisionerPrompt(provisioners)
+	if err != nil {
+		return err
+	}
+
+	// JWK provisioner
+	prov, ok := p.(*provisioner.JWK)
+	if !ok {
+		return errors.Errorf("unsupported provisioner type %T", p)
+	}
+
+	// Generate SDS configuration
+	address := filepath.Join(dir, "sds.unix")
+	sdsConfig := sds.Config{
+		Network: "unix",
+		Address: address,
+		Provisioner: sds.ProvisionerConfig{
+			Issuer:   prov.Name,
+			KeyID:    prov.Key.KeyID,
+			Password: "",
+			CaURL:    caURL,
+			CaRoot:   root,
+		},
+		Logger: json.RawMessage(`{"format": "text"}`),
+	}
+
+	configFileName := filepath.Join(configBase, "sds.json")
+	b, err := json.MarshalIndent(sdsConfig, "", "   ")
+	if err != nil {
+		return errors.Wrapf(err, "error marshaling %s", configFileName)
+	}
+	if err = utils.WriteFile(configFileName, b, 0666); err != nil {
+		return errs.FileError(err, configFileName)
+	}
+
+	ui.Println()
+	ui.PrintSelected("UNIX domain socket", address)
+	ui.PrintSelected("SDS configuration", configFileName)
+	ui.Println()
+	ui.Println("Your server is ready to go.")
 
 	return nil
 }
