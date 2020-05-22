@@ -30,23 +30,33 @@ $(foreach pkg,$(BOOTSTRAP),$(eval $(call VENDOR_BIN_TMPL,$(pkg))))
 # Determine the type of `push` and `version`
 #################################################
 
-# Version flags to embed in the binaries
+# If TRAVIS_TAG is set then we know this ref has been tagged.
+ifdef TRAVIS_TAG
+VERSION := $(TRAVIS_TAG)
+NOT_RC  := $(shell echo $(VERSION) | grep -v -e -rc)
+	ifeq ($(NOT_RC),)
+PUSHTYPE := release-candidate
+	else
+PUSHTYPE := release
+	endif
+else
 VERSION ?= $(shell [ -d .git ] && git describe --tags --always --dirty="-dev")
 # If we are not in an active git dir then try reading the version from .VERSION.
 # .VERSION contains a slug populated by `git archive`.
 VERSION := $(or $(VERSION),$(shell ./.version.sh .VERSION))
-VERSION := $(shell echo $(VERSION) | sed 's/^v//')
-NOT_RC  := $(shell echo $(VERSION) | grep -v -e -rc)
-
-# If TRAVIS_TAG is set then we know this ref has been tagged.
-ifdef TRAVIS_TAG
-	ifeq ($(NOT_RC),)
-		PUSHTYPE=release-candidate
+	ifeq ($(TRAVIS_BRANCH),master)
+PUSHTYPE := master
 	else
-		PUSHTYPE=release
+PUSHTYPE := branch
 	endif
-else
-	PUSHTYPE=master
+endif
+
+VERSION := $(shell echo $(VERSION) | sed 's/^v//')
+
+ifdef V
+$(info    TRAVIS_TAG is $(TRAVIS_TAG))
+$(info    VERSION is $(VERSION))
+$(info    PUSHTYPE is $(PUSHTYPE))
 endif
 
 #########################################
