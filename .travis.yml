@@ -1,6 +1,6 @@
 language: go
 go:
-- 1.13.x
+- 1.14.x
 addons:
   apt:
     packages:
@@ -14,20 +14,18 @@ before_script:
 - make bootstrap
 script:
 - make
-# - make artifacts
+- make artifacts
 after_success:
 - bash <(curl -s https://codecov.io/bash) -t "$CODECOV_TOKEN" || echo "Codecov did
   not collect coverage reports"
 notifications:
   email: false
-# stage: Github Release
-# deploy:
-#   provider: releases
-#   skip_cleanup: true
-#   api_key:
-#     secure: ====TODO====
-#   file_glob: true
-#   file: .travis-releases/*
-#   on:
-#     repo: smallstep/step-sds
-#     tags: true
+deploy:
+  provider: releases
+  api_key:
+    secure: FgFMFdSyad1QMlfeMDdkMA9/ZkFOyIxG/jBmC2ceaWetZe4HvMGqhPaE9mqlpSuAQJBKunInbMQ7a0YDynV6t1bC+Z+koaf3JEBG9IYjY8T5ZzpofMIZigVDBIe7pUWl4+3W0LONvM1DG6xoVa97qyKzzBiIjVdJsN8ER6irCu0YSG6MGXS9Hjy7daozO8sr+3EKYOlqbvIjN1cPfAMQCMYZn9j2EtoH5ZUz27Srn538gsx0A8UnhbBk77o6S4ROVPQLJpCrd/3RQdbhVUS7JekmJoDFBtImlMe9yHdqpIYxQJl1a8HszI1Mtfm4abW6QtH3QoKgNPsrBenhNFiXEF18IkT32C9j4ZcXdsgKPYIXXGIAVxthwT9i9deuYle2BcwyqawSy4F5tskrS0Xl4Jh/tM6QcYl0G7z/SjXcuCzsHy8wf4TTGONlLJ2oMm5aQh207OXUz225iXpbmsEdtxQ+x3IrMWVzlLRlQw89q7VNiTZHYbyork3KsN4U+jZ3sIugFnPUs2eNr/ZcSCG9+6qxUuvls/azZ+MAnq8NAqIlQqWsQQchQC6NW+dnXR6llbcrwZt+XZWj93DIoV+waBfiRLroriRbbVuVmm1UgwTPWi1x75L3ne6B6vaqFErko6lneBU1V4ibiGOUc+fF/XrDtWFVsfgYBPny2X9xGlc=
+  file_glob: true
+  file: ".travis-releases/*"
+  on:
+    repo: smallstep/step-sds
+    tags: true
