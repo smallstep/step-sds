@@ -1,5 +1,5 @@
 ---
-name: Step-SDS Bug
+name: Bug Report
 about: Report a bug you found in step-sds
 labels: bug, needs triage
 ---
