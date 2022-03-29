@@ -12,7 +12,7 @@ require (
 	github.com/go-chi/chi v4.0.3-0.20190316151245-d08916613452+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gogo/googleapis v1.1.0
-	github.com/gogo/protobuf v1.2.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lunixbochs/vtclean v1.0.0 // indirect
@@ -35,8 +35,7 @@ require (
 	github.com/urfave/cli v1.20.1-0.20190203184040-693af58b4d51
 	go.etcd.io/bbolt v1.3.2 // indirect
 	golang.org/x/lint v0.0.0-20190409202823-959b441ac422 // indirect
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-	golang.org/x/tools v0.0.0-20190914235951-31e00f45c22e // indirect
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	google.golang.org/appengine v1.6.2 // indirect
 	google.golang.org/genproto v0.0.0-20190401181712-f467c93bbac2 // indirect
 	google.golang.org/grpc v1.19.0
