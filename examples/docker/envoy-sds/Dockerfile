@@ -1,5 +1,5 @@
 FROM smallstep/step-sds:latest AS sds
-FROM envoyproxy/envoy-alpine
+FROM envoyproxy/envoy-alpine:v1.9.1
 
 RUN apk update
 RUN apk add python3
