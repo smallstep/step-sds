@@ -309,6 +309,9 @@ artifacts-tag: artifacts-linux-tag artifacts-darwin-tag artifacts-archive-tag
 # For all builds that are not tagged
 artifacts-master:
 
+# For all builds on a branch
+artifacts-branch:
+
 # For all build with a release candidate tag
 artifacts-release-candidate: artifacts-tag
 
