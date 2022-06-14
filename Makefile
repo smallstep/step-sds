@@ -20,7 +20,7 @@ all: build test lint
 #########################################
 
 bootstra%:
-	$Q GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.24.0
+	$Q go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
 
 $(foreach pkg,$(BOOTSTRAP),$(eval $(call VENDOR_BIN_TMPL,$(pkg))))
 
