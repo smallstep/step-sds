@@ -14,11 +14,11 @@ import (
 	"github.com/smallstep/cli/command"
 	"github.com/smallstep/cli/crypto/pemutil"
 	"github.com/smallstep/cli/errs"
-	"github.com/smallstep/cli/ui"
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/step-sds/logging"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
+	"go.step.sm/cli-utils/ui"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
