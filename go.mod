@@ -34,11 +34,14 @@ require (
 	github.com/smallstep/nosql v0.1.0 // indirect
 	github.com/urfave/cli v1.20.1-0.20190203184040-693af58b4d51
 	go.etcd.io/bbolt v1.3.2 // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/lint v0.0.0-20190409202823-959b441ac422 // indirect
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/sys v0.0.0-20220614162138-6c1b26c55098 // indirect
 	google.golang.org/appengine v1.6.2 // indirect
 	google.golang.org/genproto v0.0.0-20190401181712-f467c93bbac2 // indirect
 	google.golang.org/grpc v1.19.0
 	gopkg.in/alecthomas/kingpin.v3-unstable v3.0.0-20171010053543-63abe20a23e2 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
