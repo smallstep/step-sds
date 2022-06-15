@@ -20,7 +20,7 @@ all: build test lint
 #########################################
 
 bootstra%:
-	$Q GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.24.0
+	$Q go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
 
 $(foreach pkg,$(BOOTSTRAP),$(eval $(call VENDOR_BIN_TMPL,$(pkg))))
 
@@ -220,6 +220,9 @@ docker-login:
 # For all builds we build the docker container
 docker-master: docker
 
+# For all branch builds we build the docker container
+docker-branch: docker
+
 # For all builds with a release candidate tag
 docker-release-candidate: docker-master docker-login docker-push-tag
 
@@ -309,6 +312,9 @@ artifacts-tag: artifacts-linux-tag artifacts-darwin-tag artifacts-archive-tag
 # For all builds that are not tagged
 artifacts-master:
 
+# For all builds on a branch
+artifacts-branch:
+
 # For all build with a release candidate tag
 artifacts-release-candidate: artifacts-tag
 
@@ -318,4 +324,4 @@ artifacts-release: artifacts-tag
 # This command is called by travis directly *after* a successful build
 artifacts: artifacts-$(PUSHTYPE) docker-$(PUSHTYPE)
 
-.PHONY: artifacts-master artifacts-release-candidate artifacts-release artifacts
+.PHONY: artifacts-master artifacts-branch artifacts-release-candidate artifacts-release artifacts

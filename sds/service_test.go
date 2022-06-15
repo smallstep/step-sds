@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -126,7 +127,7 @@ func TestService_StreamSecrets(t *testing.T) {
 	srv.Register(s)
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			t.Fatalf("Server exited with error: %v", err)
+			panic(fmt.Sprintf("Server exited with error: %v", err))
 		}
 	}()
 
@@ -298,7 +299,7 @@ func TestService_FetchSecrets(t *testing.T) {
 	srv.Register(s)
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			t.Fatalf("Server exited with error: %v", err)
+			panic(fmt.Sprintf("Server exited with error: %v", err))
 		}
 	}()
 

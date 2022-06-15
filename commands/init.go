@@ -16,10 +16,10 @@ import (
 	"github.com/smallstep/cli/crypto/pki"
 	"github.com/smallstep/cli/crypto/x509util"
 	"github.com/smallstep/cli/errs"
-	"github.com/smallstep/cli/ui"
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
+	"go.step.sm/cli-utils/ui"
 )
 
 func init() {
