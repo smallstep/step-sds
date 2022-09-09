@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	secret "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/cli/crypto/x509util"
 	"github.com/smallstep/step-sds/logging"
@@ -36,10 +37,11 @@ var ValidationContextRenewPeriod = 8 * time.Hour
 
 // Service is the interface that an Envoy secret discovery service (SDS) has to
 // implement. They server TLS certificates to Envoy using gRPC.
-// type Service interface {
-// 	Register(s *grpc.Server)
-// 	discovery.SecretDiscoveryServiceServer
-// }
+//
+//	type Service interface {
+//		Register(s *grpc.Server)
+//		discovery.SecretDiscoveryServiceServer
+//	}
 type Service struct {
 	provisioner           *ca.Provisioner
 	stopCh                chan struct{}
@@ -84,15 +86,19 @@ func (srv *Service) Stop() error {
 
 // Register registers the sds.Service into the given gRPC server.
 func (srv *Service) Register(s *grpc.Server) {
-	discovery.RegisterSecretDiscoveryServiceServer(s, srv)
+	secret.RegisterSecretDiscoveryServiceServer(s, srv)
+}
+
+func (srv *Service) DeltaSecrets(sds secret.SecretDiscoveryService_DeltaSecretsServer) (err error) {
+	return errors.New("DeltaSecretsServer not implemented")
 }
 
 // StreamSecrets implements the gRPC SecretDiscoveryService service and returns
 // a stream of TLS certificates.
-func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSecretsServer) (err error) {
+func (srv *Service) StreamSecrets(sds secret.SecretDiscoveryService_StreamSecretsServer) (err error) {
 	ctx := sds.Context()
 	errCh := make(chan error)
-	reqCh := make(chan *api.DiscoveryRequest)
+	reqCh := make(chan *discovery.DiscoveryRequest)
 
 	go func() {
 		for {
@@ -114,7 +120,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 	var roots []*x509.Certificate
 	var ch chan secrets
 	var nonce, versionInfo string
-	var req *api.DiscoveryRequest
+	var req *discovery.DiscoveryRequest
 	var isRenewal bool
 
 	for {
@@ -213,7 +219,7 @@ func (srv *Service) StreamSecrets(sds discovery.SecretDiscoveryService_StreamSec
 }
 
 // FetchSecrets implements gRPC SecretDiscoveryService service and returns one TLS certificate.
-func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (*api.DiscoveryResponse, error) {
+func (srv *Service) FetchSecrets(ctx context.Context, r *discovery.DiscoveryRequest) (*discovery.DiscoveryResponse, error) {
 	srv.addRequestToContext(ctx, r)
 	if err := srv.validateRequest(ctx, r); err != nil {
 		return nil, err
@@ -241,7 +247,7 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *api.DiscoveryRequest) (
 	return getDiscoveryResponse(r, versionInfo, certs, roots)
 }
 
-func (srv *Service) validateRequest(ctx context.Context, r *api.DiscoveryRequest) error {
+func (srv *Service) validateRequest(ctx context.Context, r *discovery.DiscoveryRequest) error {
 	if !srv.isTCP {
 		return nil
 	}
@@ -287,7 +293,7 @@ func (srv *Service) versionInfo() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-func (srv *Service) logRequest(ctx context.Context, r *api.DiscoveryRequest, msg string, start time.Time, err error, extra ...logging.Fields) {
+func (srv *Service) logRequest(ctx context.Context, r *discovery.DiscoveryRequest, msg string, start time.Time, err error, extra ...logging.Fields) {
 	duration := time.Since(start)
 	entry := logging.GetRequestEntry(ctx)
 
@@ -330,7 +336,7 @@ func (srv *Service) logRequest(ctx context.Context, r *api.DiscoveryRequest, msg
 	}
 }
 
-func (srv *Service) addRequestToContext(ctx context.Context, r *api.DiscoveryRequest) {
+func (srv *Service) addRequestToContext(ctx context.Context, r *discovery.DiscoveryRequest) {
 	var fields logging.Fields
 	if r != nil {
 		fields = logging.Fields{

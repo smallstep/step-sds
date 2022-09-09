@@ -1,8 +1,8 @@
 FROM smallstep/step-sds:latest AS sds
-FROM envoyproxy/envoy-alpine:v1.9.1
+FROM envoyproxy/envoy:v1.23.1
 
-RUN apk update
-RUN apk add python3
+RUN apt-get update
+RUN apt-get install -y python3
 RUN mkdir /src
 
 ADD sds/steppath/sds/sds_client.crt /src
