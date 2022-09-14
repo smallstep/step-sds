@@ -90,7 +90,7 @@ func (srv *Service) Register(s *grpc.Server) {
 }
 
 func (srv *Service) DeltaSecrets(sds secret.SecretDiscoveryService_DeltaSecretsServer) (err error) {
-	return errors.New("DeltaSecretsServer not implemented")
+	return errors.New("method DeltaSecrets not implemented")
 }
 
 // StreamSecrets implements the gRPC SecretDiscoveryService service and returns

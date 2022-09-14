@@ -2,7 +2,7 @@ package logging
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/rs/xid"
@@ -19,7 +19,7 @@ const (
 )
 
 var nullLogger = &logrus.Logger{
-	Out:       ioutil.Discard,
+	Out:       io.Discard,
 	Formatter: new(logrus.TextFormatter),
 	Hooks:     make(logrus.LevelHooks),
 	Level:     logrus.PanicLevel,

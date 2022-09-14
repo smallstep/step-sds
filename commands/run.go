@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"net"
+	"os"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -143,7 +143,7 @@ func runAction(ctx *cli.Context) error {
 		} else if c.Password != "" {
 			pemOpts = append(pemOpts, pemutil.WithPassword([]byte(c.Password)))
 		}
-		keyBytes, err := ioutil.ReadFile(c.CertificateKey)
+		keyBytes, err := os.ReadFile(c.CertificateKey)
 		if err != nil {
 			return errs.FileError(err, c.CertificateKey)
 		}
@@ -166,7 +166,7 @@ func runAction(ctx *cli.Context) error {
 			MinVersion:   tls.VersionTLS12,
 		}
 		if c.Root != "" {
-			b, err := ioutil.ReadFile(c.Root)
+			b, err := os.ReadFile(c.Root)
 			if err != nil {
 				return errs.FileError(err, c.Root)
 			}

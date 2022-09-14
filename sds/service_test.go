@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
 
@@ -137,7 +138,7 @@ func TestService_StreamSecrets(t *testing.T) {
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
@@ -309,7 +310,7 @@ func TestService_FetchSecrets(t *testing.T) {
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
