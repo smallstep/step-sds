@@ -6,16 +6,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	types "github.com/gogo/protobuf/types"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 	"github.com/smallstep/cli/crypto/pemutil"
 	"github.com/smallstep/cli/crypto/randutil"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
-const secretTypeURL = "type.googleapis.com/envoy.api.v2.auth.Secret"
+const secretTypeURL = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
 
 // isValidationContext returns if the given name is one of the predefined
 // validation context names.
@@ -24,7 +25,7 @@ func isValidationContext(name string) bool {
 }
 
 // getDiscoveryResponse returns the api.DiscoveryResponse for the given request.
-func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, certs []*tls.Certificate, roots []*x509.Certificate) (*api.DiscoveryResponse, error) {
+func getDiscoveryResponse(r *discovery.DiscoveryRequest, versionInfo string, certs []*tls.Certificate, roots []*x509.Certificate) (*discovery.DiscoveryResponse, error) {
 	nonce, err := randutil.Hex(64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating nonce")
@@ -32,7 +33,7 @@ func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, certs []*
 
 	var i int
 	var b []byte
-	var resources []types.Any
+	var resources []*anypb.Any
 	for _, name := range r.ResourceNames {
 		if isValidationContext(name) {
 			b, err = getTrustedCA(name, roots)
@@ -43,13 +44,13 @@ func getDiscoveryResponse(r *api.DiscoveryRequest, versionInfo string, certs []*
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, types.Any{
+		resources = append(resources, &anypb.Any{
 			TypeUrl: secretTypeURL,
 			Value:   b,
 		})
 	}
 
-	return &api.DiscoveryResponse{
+	return &discovery.DiscoveryResponse{
 		VersionInfo: versionInfo,
 		Resources:   resources,
 		Canary:      false,
@@ -79,7 +80,7 @@ func getTrustedCA(name string, roots []*x509.Certificate) ([]byte, error) {
 			},
 		},
 	}
-	v, err := secret.Marshal()
+	v, err := proto.Marshal(&secret)
 	return v, errors.Wrapf(err, "error marshaling secret")
 }
 
@@ -115,6 +116,6 @@ func getCertificateChain(name string, cert *tls.Certificate) ([]byte, error) {
 		},
 	}
 
-	v, err := secret.Marshal()
+	v, err := proto.Marshal(&secret)
 	return v, errors.Wrapf(err, "error marshaling secret")
 }
