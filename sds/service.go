@@ -164,22 +164,16 @@ func (srv *Service) StreamSecrets(sds secret.SecretDiscoveryService_StreamSecret
 				tokens = append(tokens, token)
 			}
 
-			getSecrets := func() (secrets, error) {
-				sr, err := newSecretRenewer(tokens)
-				if err != nil {
-					srv.logRequest(ctx, r, "Error creating renewer", t1, err)
-					return secrets{}, err
-				}
-				defer sr.Stop()
-
-				ch = sr.RenewChannel()
-				return sr.Secrets(), nil
-			}
-
-			secs, err := getSecrets()
+			sr, err := newSecretRenewer(tokens)
 			if err != nil {
+				srv.logRequest(ctx, r, "Error creating renewer", t1, err)
 				return err
 			}
+			//nolint:gocritic // legacy
+			defer sr.Stop()
+
+			ch = sr.RenewChannel()
+			secs := sr.Secrets()
 			certs, roots = secs.Certificates, secs.Roots
 		case secs := <-ch:
 			t1 = time.Now()
