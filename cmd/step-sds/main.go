@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 	// Enabled commands
 	_ "github.com/smallstep/step-sds/commands"
 
-	// Profiling and debugging
+	//nolint:gosec // Profiling and debugging
 	_ "net/http/pprof"
 )
 
@@ -133,7 +134,11 @@ func main() {
 	debugProfAddr := os.Getenv("STEP_PROF_ADDR")
 	if debugProfAddr != "" {
 		go func() {
-			log.Println(http.ListenAndServe(debugProfAddr, nil))
+			server := &http.Server{
+				Addr:              debugProfAddr,
+				ReadHeaderTimeout: 15 * time.Second,
+			}
+			log.Println(server.ListenAndServe())
 		}()
 	}
 
@@ -143,7 +148,7 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		os.Exit(1)
+		runtime.Goexit()
 	}
 }
 
@@ -157,10 +162,10 @@ func flagValue(f cli.Flag) reflect.Value {
 
 func stringifyFlag(f cli.Flag) string {
 	fv := flagValue(f)
-	usage := fv.FieldByName("Usage").String()
-	placeholder := placeholderString.FindString(usage)
+	usg := fv.FieldByName("Usage").String()
+	placeholder := placeholderString.FindString(usg)
 	if placeholder == "" {
 		placeholder = "<value>"
 	}
-	return cli.FlagNamePrefixer(fv.FieldByName("Name").String(), placeholder) + "\t" + usage
+	return cli.FlagNamePrefixer(fv.FieldByName("Name").String(), placeholder) + "\t" + usg
 }
