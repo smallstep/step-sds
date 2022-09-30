@@ -4,7 +4,7 @@ BINNAME?=step-sds
 # Set V to 1 for verbose output from the Makefile
 Q=$(if $V,,@)
 PREFIX?=
-SRC=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
+SRC=$(shell find . -type f -name '*.go')
 GOOS_OVERRIDE ?=
 OUTPUT_ROOT=output/
 
@@ -19,12 +19,12 @@ all: build test lint
 # Bootstrapping
 #########################################
 
-bootstra%:
-	$Q go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+bootstrap:
+	$Q curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin latest
+	$Q go install golang.org/x/vuln/cmd/govulncheck@latest
+	$Q go install gotest.tools/gotestsum@latest
 
-$(foreach pkg,$(BOOTSTRAP),$(eval $(call VENDOR_BIN_TMPL,$(pkg))))
-
-.PHONY: bootstra%
+.PHONY: bootstrap
 
 #################################################
 # Determine the type of `push` and `version`
@@ -97,19 +97,11 @@ generate:
 #########################################
 # Test
 #########################################
+
 test:
-	$Q $(GOFLAGS) go test -short -coverprofile=coverage.out ./...
+	$Q gotestsum -- -coverprofile coverage.out ./...
 
-vtest:
-	$(Q)for d in $$(go list ./... | grep -v vendor); do \
-    echo -e "TESTS FOR: for \033[0;35m$$d\033[0m"; \
-    $(GOFLAGS) go test -v -bench=. -run=. -short -coverprofile=vcoverage.out $$d; \
-	out=$$?; \
-	if [[ $$out -ne 0 ]]; then ret=$$out; fi;\
-    rm -f profile.coverage.out; \
-	done; exit $$ret;
-
-.PHONY: test vtest
+.PHONY: test
 
 integrate: integration
 
@@ -123,11 +115,12 @@ integration: bin/$(BINNAME)
 #########################################
 
 fmt:
-	$Q gofmt -l -w $(SRC)
+	$Q goimports -l -w $(SRC)
 
+lint: SHELL:=/bin/bash
 lint:
-	$Q LOG_LEVEL=error golangci-lint run
-
+	$Q LOG_LEVEL=error golangci-lint run --config <(curl -s https://raw.githubusercontent.com/smallstep/workflows/master/.golangci.yml) --timeout=30m
+	$Q govulncheck ./...
 
 .PHONY: lint fmt
 
