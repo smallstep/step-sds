@@ -13,7 +13,7 @@ require (
 	github.com/smallstep/cli v0.13.1
 	github.com/urfave/cli v1.22.2
 	go.step.sm/cli-utils v0.7.3
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/net v0.0.0-20220927171203-f486391704dc
 	google.golang.org/genproto v0.0.0-20220329172620-7be39ac1afc7
 	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.28.1
@@ -53,8 +53,8 @@ require (
 	github.com/smallstep/nosql v0.4.0 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
 	go.step.sm/crypto v0.9.0 // indirect
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/sys v0.0.0-20211031064116-611d5d643895 // indirect
+	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
+	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )

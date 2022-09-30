@@ -169,6 +169,7 @@ func (srv *Service) StreamSecrets(sds secret.SecretDiscoveryService_StreamSecret
 				srv.logRequest(ctx, r, "Error creating renewer", t1, err)
 				return err
 			}
+			//nolint:gocritic // legacy
 			defer sr.Stop()
 
 			ch = sr.RenewChannel()
@@ -181,7 +182,7 @@ func (srv *Service) StreamSecrets(sds secret.SecretDiscoveryService_StreamSecret
 			certs, roots = secs.Certificates, secs.Roots
 		case err := <-errCh:
 			t1 = time.Now()
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			srv.logRequest(ctx, nil, "Recv failed", t1, err)
@@ -327,11 +328,12 @@ func (srv *Service) logRequest(ctx context.Context, r *discovery.DiscoveryReques
 		entry.Data[logging.ErrorKey] = err
 	}
 
-	if err != nil || (r != nil && r.ErrorDetail != nil) {
+	switch {
+	case err != nil || (r != nil && r.ErrorDetail != nil):
 		entry.Error(msg)
-	} else if infoLevel {
+	case infoLevel:
 		entry.Info(msg)
-	} else {
+	default:
 		entry.Debug(msg)
 	}
 }
