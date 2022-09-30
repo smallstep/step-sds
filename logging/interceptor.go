@@ -140,7 +140,7 @@ func newEntryForCall(ctx context.Context, entry *logrus.Entry, fullMethodString,
 	return WithRequestEntry(ctx, callLog)
 }
 
-func writeLog(ctx context.Context, logger *logrus.Logger, typ interceptorType, requestID, fullMethod string, startTime string, duration time.Duration, grpcErr error) {
+func writeLog(ctx context.Context, logger *logrus.Logger, typ interceptorType, requestID, fullMethod, startTime string, duration time.Duration, grpcErr error) {
 	code := status.Code(grpcErr)
 
 	// Get common fields
@@ -154,9 +154,9 @@ func writeLog(ctx context.Context, logger *logrus.Logger, typ interceptorType, r
 		"grpc.duration":    duration.String(),
 		"grpc.duration-ns": duration.Nanoseconds(),
 	}
-	if peer, ok := peer.FromContext(ctx); ok {
-		fields["peer.address"] = peer.Addr.String()
-		if s, ok := getPeerIdentity(peer); ok {
+	if pr, ok := peer.FromContext(ctx); ok {
+		fields["peer.address"] = pr.Addr.String()
+		if s, ok := getPeerIdentity(pr); ok {
 			fields["peer.identity"] = s
 		}
 	}
@@ -232,8 +232,7 @@ func getPeerIdentity(p *peer.Peer) (string, bool) {
 	if p.AuthInfo == nil {
 		return "", false
 	}
-	switch p.AuthInfo.AuthType() {
-	case "tls":
+	if p.AuthInfo.AuthType() == "tls" {
 		if tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo); ok {
 			return getCommonName(tlsInfo.State)
 		}
