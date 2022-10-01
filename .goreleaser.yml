@@ -78,14 +78,14 @@ nfpms:
     description: >
       The secret discovery service (SDS) simplifies certificate management and was originally created by the Envoy project to provide a flexible API to deliver secrets/certificates to the Envoy proxy.
 
-Step SDS server implements the server-side API of SDS which pushes certificates to the client. Both mTLS and Unix Domain Sockets configuration are supported. Use the one that better suits your environment/requirements.
+      Step SDS server implements the server-side API of SDS which pushes certificates to the client. Both mTLS and Unix Domain Sockets configuration are supported. Use the one that better suits your environment/requirements.
     license: Apache 2.0
     section: utils
     formats:
       - deb
-      - rpm
+        #- rpm
     priority: optional
-
+    release: "{{ .Version }}"
     bindir: /usr/bin
     contents:
       - src: debian/copyright
@@ -93,12 +93,9 @@ Step SDS server implements the server-side API of SDS which pushes certificates 
         # Ghost files are used for RPM and ignored elsewhere
       - dst: /usr/bin/step-sds
         type: ghost
-      - dst: /usr/share/bash-completion/completions/step-sds
-        type: ghost
     scripts:
       postinstall: scripts/postinstall.sh
       postremove: scripts/postremove.sh
-
 
 source:
   enabled: true
