@@ -215,14 +215,14 @@ func TestService_StreamSecrets(t *testing.T) {
 				assert.Equals(t, &core.ControlPlane{Identifier: Identifier}, got.ControlPlane)
 				for i, r := range got.Resources {
 					assert.Equals(t, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", r.TypeUrl)
-					var secret auth.Secret
-					if assert.NoError(t, proto.Unmarshal(r.Value, &secret)) {
-						assert.Equals(t, tt.req.ResourceNames[i], secret.Name)
-						if isValidationContext(secret.Name) {
-							assert.Type(t, &auth.Secret_ValidationContext{}, secret.Type)
+					var sec auth.Secret
+					if assert.NoError(t, proto.Unmarshal(r.Value, &sec)) {
+						assert.Equals(t, tt.req.ResourceNames[i], sec.Name)
+						if isValidationContext(sec.Name) {
+							assert.Type(t, &auth.Secret_ValidationContext{}, sec.Type)
 						} else {
 							hasServerCert = true
-							assert.Type(t, &auth.Secret_TlsCertificate{}, secret.Type)
+							assert.Type(t, &auth.Secret_TlsCertificate{}, sec.Type)
 						}
 					}
 				}
@@ -262,13 +262,13 @@ func TestService_StreamSecrets(t *testing.T) {
 					assert.Equals(t, &core.ControlPlane{Identifier: Identifier}, got.ControlPlane)
 					for i, r := range got.Resources {
 						assert.Equals(t, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", r.TypeUrl)
-						var secret auth.Secret
-						if assert.NoError(t, proto.Unmarshal(r.Value, &secret)) {
-							assert.Equals(t, tt.req.ResourceNames[i], secret.Name)
-							if isValidationContext(secret.Name) {
-								assert.Type(t, &auth.Secret_ValidationContext{}, secret.Type)
+						var sec auth.Secret
+						if assert.NoError(t, proto.Unmarshal(r.Value, &sec)) {
+							assert.Equals(t, tt.req.ResourceNames[i], sec.Name)
+							if isValidationContext(sec.Name) {
+								assert.Type(t, &auth.Secret_ValidationContext{}, sec.Type)
 							} else {
-								assert.Type(t, &auth.Secret_TlsCertificate{}, secret.Type)
+								assert.Type(t, &auth.Secret_TlsCertificate{}, sec.Type)
 							}
 						}
 					}
@@ -368,13 +368,13 @@ func TestService_FetchSecrets(t *testing.T) {
 				assert.Equals(t, &core.ControlPlane{Identifier: Identifier}, got.ControlPlane)
 				for i, r := range got.Resources {
 					assert.Equals(t, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", r.TypeUrl)
-					var secret auth.Secret
-					if assert.NoError(t, proto.Unmarshal(r.Value, &secret)) {
-						assert.Equals(t, tt.req.ResourceNames[i], secret.Name)
-						if isValidationContext(secret.Name) {
-							assert.Type(t, &auth.Secret_ValidationContext{}, secret.Type)
+					var sec auth.Secret
+					if assert.NoError(t, proto.Unmarshal(r.Value, &sec)) {
+						assert.Equals(t, tt.req.ResourceNames[i], sec.Name)
+						if isValidationContext(sec.Name) {
+							assert.Type(t, &auth.Secret_ValidationContext{}, sec.Type)
 						} else {
-							assert.Type(t, &auth.Secret_TlsCertificate{}, secret.Type)
+							assert.Type(t, &auth.Secret_TlsCertificate{}, sec.Type)
 						}
 					}
 				}

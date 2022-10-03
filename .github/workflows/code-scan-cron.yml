@@ -1,0 +1,8 @@
+on:
+  schedule:
+    - cron: '0 0 * * SUN'
+
+jobs:
+  code-scan:
+    uses: smallstep/workflows/.github/workflows/code-scan.yml@main
+    secrets: inherit
