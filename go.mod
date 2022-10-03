@@ -11,7 +11,7 @@ require (
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
 	github.com/smallstep/certificates v0.13.2-0.20190918221809-81093c3080eb
 	github.com/smallstep/cli v0.13.1
-	github.com/urfave/cli v1.22.2
+	github.com/urfave/cli v1.22.10
 	go.step.sm/cli-utils v0.7.3
 	golang.org/x/net v0.0.0-20220927171203-f486391704dc
 	google.golang.org/genproto v0.0.0-20220329172620-7be39ac1afc7
