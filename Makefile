@@ -203,7 +203,6 @@ define DOCKER_PUSH
 	# $(1) -- App Name
 	# $(2) -- Image Tag
 	docker push smallstep/$(1):$(2)
-	cosign sign -r smallstep/$(1):$(2)
 endef
 
 docker-tag:
@@ -211,6 +210,7 @@ docker-tag:
 
 docker-push-tag: docker-tag
 	$(call DOCKER_PUSH,step-sds,$(VERSION))
+	cosign sign -r smallstep/step-sds
 
 docker-push-tag-latest:
 	$(call DOCKER_PUSH,step-sds,latest)
