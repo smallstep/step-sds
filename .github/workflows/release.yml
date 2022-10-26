@@ -82,7 +82,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_PAT }}
           COSIGN_EXPERIMENTAL: 1
-          RELEASE_DATE: ${RELEASE_DATE}
+          RELEASE_DATE: ${{ env.RELEASE_DATE }}
 
   build_upload_docker:
     name: Build & Upload Docker Images
@@ -111,4 +111,10 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Cosign
+        id: cosign
+        run: |
+          DIGEST=$(docker images --digests --format "{{.Digest}}" smallstep/step-sds | head -n 1 | tr -d '[:space:]')
+          cosign sign -r smallstep/step-sds@${DIGEST}
+        env:
           COSIGN_EXPERIMENTAL: 1
