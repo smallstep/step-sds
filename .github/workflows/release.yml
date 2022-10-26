@@ -82,7 +82,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_PAT }}
           COSIGN_EXPERIMENTAL: 1
-          RELEASE_DATE: ${RELEASE_DATE}
+          RELEASE_DATE: ${{ env.RELEASE_DATE }}
 
   build_upload_docker:
     name: Build & Upload Docker Images
