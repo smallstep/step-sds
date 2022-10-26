@@ -198,7 +198,13 @@ docker-make:
 #################################################
 
 DOCKER_TAG=docker tag smallstep/$(1):latest smallstep/$(1):$(2)
-DOCKER_PUSH=docker push smallstep/$(1):$(2)
+
+define DOCKER_PUSH
+	# $(1) -- App Name
+	# $(2) -- Image Tag
+	docker push smallstep/$(1):$(2)
+	cosign sign -r smallstep/$(1):$(2)
+endef
 
 docker-tag:
 	$(call DOCKER_TAG,step-sds,$(VERSION))
