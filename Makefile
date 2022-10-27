@@ -212,9 +212,6 @@ docker-tag:
 
 docker-push-tag: docker-tag
 	$(call DOCKER_PUSH,step-sds,$(VERSION))
-	DIGEST=$(docker images --digests --format "{{.Digest}}" ${DOCKER_IMAGE})
-	DIGEST=$(echo ${DIGEST} | tr -d '[:space:]')
-	cosign sign -r ${DOCKER_IMAGE}@${DIGEST}
 
 docker-push-tag-latest:
 	$(call DOCKER_PUSH,step-sds,latest)
