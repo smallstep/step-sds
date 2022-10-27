@@ -105,6 +105,7 @@ jobs:
           cosign-release: 'v1.13.1'
       - name: Build
         id: build
+        continue-on-error: true
         run: |
           PATH=$PATH:/usr/local/go/bin:/home/admin/go/bin
           make docker-artifacts
@@ -112,3 +113,5 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           COSIGN_EXPERIMENTAL: 1
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
