@@ -197,6 +197,8 @@ docker-make:
 # appropriate tags.
 #################################################
 
+DOCKER_IMAGE=smallstep/step-sds
+
 DOCKER_TAG=docker tag smallstep/$(1):latest smallstep/$(1):$(2)
 
 define DOCKER_PUSH
@@ -210,7 +212,9 @@ docker-tag:
 
 docker-push-tag: docker-tag
 	$(call DOCKER_PUSH,step-sds,$(VERSION))
-	cosign sign -r smallstep/step-sds
+	DIGEST=$(docker images --digests --format "{{.Digest}}" ${DOCKER_IMAGE})
+	DIGEST=$(echo ${DIGEST} | tr -d '[:space:]')
+	cosign sign -r ${DOCKER_IMAGE}@${DIGEST}
 
 docker-push-tag-latest:
 	$(call DOCKER_PUSH,step-sds,latest)
