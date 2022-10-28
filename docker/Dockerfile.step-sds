@@ -1,12 +1,12 @@
-FROM smallstep/step-cli:0.22.0
+FROM golang:alpine AS builder
 
-RUN mkdir /src
-ADD . /src
+WORKDIR /src
+COPY . .
 
-RUN apk add --no-cache make git curl && \
-	cd /src && \
-	mkdir -p output/bin && \
-	make V=1 bin/step-sds
+RUN apk add --no-cache curl git make
+RUN make V=1 bin/step-sds
+
+FROM smallstep/step-cli:latest
 
 COPY --from=builder /src/bin/step-sds "/usr/local/bin/step-sds"
 
