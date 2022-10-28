@@ -1,7 +1,14 @@
-FROM smallstep/step-cli:0.20.0
+FROM smallstep/step-cli:0.22.0
 
-ARG BINPATH="bin/step-sds"
-COPY $BINPATH "/usr/local/bin/step-sds"
+RUN mkdir /src
+ADD . /src
+
+RUN apk add --no-cache make git curl && \
+	cd /src && \
+	mkdir -p output/bin && \
+	make V=1 bin/step-sds
+
+COPY --from=builder /src/bin/step-sds "/usr/local/bin/step-sds"
 
 STOPSIGNAL SIGTERM
 
