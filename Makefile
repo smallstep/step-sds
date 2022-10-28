@@ -8,9 +8,6 @@ SRC=$(shell find . -type f -name '*.go')
 GOOS_OVERRIDE ?=
 OUTPUT_ROOT=output/
 
-# Set shell to bash for `echo -e`
-SHELL := /bin/bash
-
 all: build test lint
 
 .PHONY: all
