@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smallstep/cli/command"
-	"github.com/smallstep/cli/command/version"
-	"github.com/smallstep/cli/config"
 	"github.com/smallstep/cli/usage"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
+	"go.step.sm/cli-utils/command"
+	"go.step.sm/cli-utils/command/version"
+	"go.step.sm/cli-utils/step"
 
 	// Enabled commands
 	_ "github.com/smallstep/step-sds/commands"
@@ -79,16 +79,16 @@ This documentation is available online at https://github.com/smallstep/step-sds
 `
 
 func init() {
-	config.Set("Smallstep SDS", Version, BuildTime)
-	sds.Identifier = config.Version()
+	step.Set("Smallstep SDS", Version, BuildTime)
+	sds.Identifier = step.Version()
 	rand.Seed(time.Now().UnixNano())
 }
 
 func panicHandler() {
 	if r := recover(); r != nil {
 		if os.Getenv("STEPDEBUG") == "1" {
-			fmt.Fprintf(os.Stderr, "%s\n", config.Version())
-			fmt.Fprintf(os.Stderr, "Release Date: %s\n\n", config.ReleaseDate())
+			fmt.Fprintf(os.Stderr, "%s\n", step.Version())
+			fmt.Fprintf(os.Stderr, "Release Date: %s\n\n", step.ReleaseDate())
 			panic(r)
 		} else {
 			fmt.Fprintln(os.Stderr, "Something unexpected happened.")
@@ -118,7 +118,7 @@ func main() {
 	app.Name = "step-sds"
 	app.HelpName = "step-sds"
 	app.Usage = "secret discovery service"
-	app.Version = config.Version()
+	app.Version = step.Version()
 	app.Commands = command.Retrieve()
 	app.Flags = append(app.Flags, cli.HelpFlag)
 	app.EnableBashCompletion = true

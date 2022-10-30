@@ -10,15 +10,15 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/authority/provisioner"
-	"github.com/smallstep/cli/command"
-	"github.com/smallstep/cli/config"
+	"github.com/smallstep/certificates/pki"
 	"github.com/smallstep/cli/crypto/pemutil"
-	"github.com/smallstep/cli/crypto/pki"
 	"github.com/smallstep/cli/crypto/x509util"
-	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
+	"go.step.sm/cli-utils/command"
+	"go.step.sm/cli-utils/errs"
+	"go.step.sm/cli-utils/step"
 	"go.step.sm/cli-utils/ui"
 )
 
@@ -64,12 +64,12 @@ func initAction(ctx *cli.Context) error {
 		return initUDS(caURL, root)
 	}
 
-	base := filepath.Join(config.StepPath(), "sds")
+	base := filepath.Join(step.Path(), "sds")
 	if err := os.MkdirAll(base, 0700); err != nil {
 		return errs.FileError(err, base)
 	}
 
-	configBase := filepath.Join(config.StepPath(), "config")
+	configBase := filepath.Join(step.Path(), "config")
 	if err := os.MkdirAll(configBase, 0700); err != nil {
 		return errs.FileError(err, configBase)
 	}
@@ -211,7 +211,7 @@ func initAction(ctx *cli.Context) error {
 }
 
 func initUDS(caURL, root string) error {
-	configBase := filepath.Join(config.StepPath(), "config")
+	configBase := filepath.Join(step.Path(), "config")
 	if err := os.MkdirAll(configBase, 0700); err != nil {
 		return errs.FileError(err, configBase)
 	}
@@ -281,7 +281,7 @@ func initUDS(caURL, root string) error {
 }
 
 func createWriteCertificate(profile x509util.Profile, certName, keyName string, password []byte) (*x509.Certificate, error) {
-	base := filepath.Join(config.StepPath(), "sds")
+	base := filepath.Join(step.Path(), "sds")
 	certName = filepath.Join(base, certName)
 	keyName = filepath.Join(base, keyName)
 
