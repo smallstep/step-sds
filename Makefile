@@ -8,9 +8,6 @@ SRC=$(shell find . -type f -name '*.go')
 GOOS_OVERRIDE ?=
 OUTPUT_ROOT=output/
 
-# Set shell to bash for `echo -e`
-SHELL := /bin/bash
-
 all: build test lint
 
 .PHONY: all
@@ -162,79 +159,6 @@ endif
 .PHONY: clean
 
 #########################################
-# Building Docker Image
-#
-# Builds a dockerfile for step by building a linux version of the step-cli and
-# then copying the specific binary when building the container.
-#
-# This ensures the container is as small as possible without having to deal
-# with getting access to private repositories inside the container during build
-# time.
-#########################################
-
-# XXX We put the output for the build in 'output' so we don't mess with how we
-# do rule overriding from the base Makefile (if you name it 'build' it messes up
-# the wildcarding).
-DOCKER_OUTPUT=$(OUTPUT_ROOT)docker/
-
-DOCKER_MAKE=V=$V GOOS_OVERRIDE='GOOS=linux GOARCH=amd64' PREFIX=$(1) make $(1)bin/$(2)
-DOCKER_BUILD=$Q docker build -t smallstep/$(1):latest -f docker/$(2) --build-arg BINPATH=$(DOCKER_OUTPUT)bin/$(1) .
-
-docker: docker-make docker/Dockerfile.step-sds
-	$(call DOCKER_BUILD,step-sds,Dockerfile.step-sds)
-
-docker-make:
-	mkdir -p $(DOCKER_OUTPUT)
-	$(call DOCKER_MAKE,$(DOCKER_OUTPUT),step-sds)
-
-.PHONY: docker docker-make
-
-#################################################
-# Releasing Docker Images
-#
-# Using the docker build infrastructure, this section is responsible for
-# logging into docker hub and pushing the built docker containers up with the
-# appropriate tags.
-#################################################
-
-DOCKER_TAG=docker tag smallstep/$(1):latest smallstep/$(1):$(2)
-DOCKER_PUSH=docker push smallstep/$(1):$(2)
-
-docker-tag:
-	$(call DOCKER_TAG,step-sds,$(VERSION))
-
-docker-push-tag: docker-tag
-	$(call DOCKER_PUSH,step-sds,$(VERSION))
-
-docker-push-tag-latest:
-	$(call DOCKER_PUSH,step-sds,latest)
-
-# Rely on DOCKER_USERNAME and DOCKER_PASSWORD being set inside the CI or
-# equivalent environment
-docker-login:
-	$Q docker login -u="$(DOCKER_USERNAME)" -p="$(DOCKER_PASSWORD)"
-
-.PHONY: docker-login docker-tag docker-push-tag docker-push-tag-latest
-
-#################################################
-# Targets for pushing the docker images
-#################################################
-
-# For all builds we build the docker container
-docker-master: docker
-
-# For all branch builds we build the docker container
-docker-branch: docker
-
-# For all builds with a release candidate tag
-docker-release-candidate: docker-master docker-login docker-push-tag
-
-# For all builds with a release tag
-docker-release: docker-release-candidate docker-push-tag-latest
-
-.PHONY: docker-master docker-release-candidate docker-release
-
-#########################################
 # Debian
 #########################################
 
@@ -291,11 +215,3 @@ bundle-darwin: binary-darwin
 	$(call BUNDLE,darwin,$(VERSION),amd64)
 
 .PHONY: binary-linux binary-darwin bundle-linux bundle-darwin
-
-#################################################
-# Targets for creating step artifacts
-#################################################
-
-docker-artifacts: docker-$(PUSHTYPE)
-
-.PHONY: artifacts-master artifacts-branch artifacts-release-candidate artifacts-release artifacts

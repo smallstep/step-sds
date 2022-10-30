@@ -1,7 +1,14 @@
-FROM smallstep/step-cli:0.20.0
+FROM golang:alpine AS builder
 
-ARG BINPATH="bin/step-sds"
-COPY $BINPATH "/usr/local/bin/step-sds"
+WORKDIR /src
+COPY . .
+
+RUN apk add --no-cache curl git make
+RUN make V=1 bin/step-sds
+
+FROM smallstep/step-cli:latest
+
+COPY --from=builder /src/bin/step-sds "/usr/local/bin/step-sds"
 
 STOPSIGNAL SIGTERM
 
