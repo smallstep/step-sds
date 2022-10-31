@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/envoyproxy/go-control-plane v0.10.3
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/xid v1.2.1
 	github.com/sirupsen/logrus v1.4.2
