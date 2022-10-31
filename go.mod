@@ -12,7 +12,7 @@ require (
 	github.com/smallstep/certificates v0.22.1
 	github.com/smallstep/cli v0.22.0
 	github.com/urfave/cli v1.22.10
-	go.step.sm/cli-utils v0.7.4
+	go.step.sm/cli-utils v0.7.5
 	golang.org/x/net v0.0.0-20220927171203-f486391704dc
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad
 	google.golang.org/grpc v1.47.0
