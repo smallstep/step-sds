@@ -11,13 +11,13 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/ca"
-	"github.com/smallstep/cli/command"
 	"github.com/smallstep/cli/crypto/pemutil"
-	"github.com/smallstep/cli/errs"
 	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/step-sds/logging"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
+	"go.step.sm/cli-utils/command"
+	"go.step.sm/cli-utils/errs"
 	"go.step.sm/cli-utils/ui"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -30,13 +30,13 @@ func init() {
 		Usage:     "run the SDS server",
 		UsageText: "**step-sds run** <config> [--password-file=<file>] [--provisioner-password-file=<file>]",
 		Description: `**step-sds run** starts a secret discovery service (SDS) using the given configuration.
-	
+
 ## POSITIONAL ARGUMENTS
-	
+
 <config>
 : File that configures the operation of the Step SDS; this file is generated
 when you initialize the Step SDS using **step-sds init**
-	
+
 ## EXIT CODES
 
 This command will run indefinitely on success and return \>0 if any error occurs.
