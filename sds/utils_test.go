@@ -9,19 +9,24 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"math"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
+	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/smallstep/certificates/ca"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/smallstep/certificates/ca"
 )
 
 const testRootCA = `-----BEGIN CERTIFICATE-----
@@ -99,8 +104,8 @@ func Test_isValidationContext(t *testing.T) {
 }
 
 func Test_getDiscoveryResponse(t *testing.T) {
-	roots := mustRootCAs()
-	certs := mustTLSCerts()
+	roots := rootCAs(t)
+	certs := tlsCerts(t)
 
 	cert, err := getCertificateChain("foo.smallstep.com", certs[0])
 	if err != nil {
@@ -110,125 +115,99 @@ func Test_getDiscoveryResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	validationContext, err := getTrustedCA("trusted_ca", roots)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	req1 := &discovery.DiscoveryRequest{
-		VersionInfo:   "versionInfo",
-		Node:          &core.Node{Id: "node-id", Cluster: "node-cluster"},
-		ResourceNames: []string{"foo.smallstep.com"},
-		TypeUrl:       "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		ResponseNonce: "response-nonce",
-	}
-	req2 := &discovery.DiscoveryRequest{
-		VersionInfo:   "versionInfo",
-		Node:          &core.Node{Id: "node-id", Cluster: "node-cluster"},
-		ResourceNames: []string{"trusted_ca"},
-		TypeUrl:       "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		ResponseNonce: "response-nonce",
-	}
-	req3 := &discovery.DiscoveryRequest{
-		VersionInfo:   "versionInfo",
-		Node:          &core.Node{Id: "node-id", Cluster: "node-cluster"},
-		ResourceNames: []string{"trusted_ca"},
-		TypeUrl:       "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		ResponseNonce: "response-nonce",
-	}
-
-	resp1 := &discovery.DiscoveryResponse{
-		VersionInfo: "versionInfo",
-		Resources: []*anypb.Any{
-			{TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", Value: cert},
-		},
-		Canary:  false,
-		TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		Nonce:   "nonce",
-		ControlPlane: &core.ControlPlane{
-			Identifier: "Smallstep SDS/0000000-dev",
-		},
-	}
-	resp2 := &discovery.DiscoveryResponse{
-		VersionInfo: "versionInfo",
-		Resources: []*anypb.Any{
-			{TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", Value: trustedCA},
-		},
-		Canary:  false,
-		TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		Nonce:   "nonce",
-		ControlPlane: &core.ControlPlane{
-			Identifier: "Smallstep SDS/0000000-dev",
-		},
-	}
-	resp3 := &discovery.DiscoveryResponse{
-		VersionInfo: "versionInfo",
-		Resources: []*anypb.Any{
-			{TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret", Value: validationContext},
-		},
-		Canary:  false,
-		TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
-		Nonce:   "nonce",
-		ControlPlane: &core.ControlPlane{
-			Identifier: "Smallstep SDS/0000000-dev",
-		},
-	}
-
-	type args struct {
-		r           *discovery.DiscoveryRequest
-		versionInfo string
-		certs       []*tls.Certificate
-		roots       []*x509.Certificate
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *discovery.DiscoveryResponse
-		wantErr bool
+	cases := []struct {
+		resourceNames []string
+		value         []byte
+		err           bool
 	}{
-		{"ok cert", args{req1, "versionInfo", certs, roots}, resp1, false},
-		{"ok trusted_ca", args{req2, "versionInfo", certs, roots}, resp2, false},
-		{"ok validation_context", args{req3, "versionInfo", certs, roots}, resp3, false},
+		0: {
+			resourceNames: []string{"foo.smallstep.com"},
+			value:         cert,
+		},
+		1: {
+			resourceNames: []string{"trusted_ca"},
+			value:         trustedCA,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getDiscoveryResponse(tt.args.r, tt.args.versionInfo, tt.args.certs, tt.args.roots)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getDiscoveryResponse() error = %v, wantErr %v", err, tt.wantErr)
-				return
+
+	for caseIndex := range cases {
+		kase := cases[caseIndex]
+
+		t.Run(strconv.Itoa(caseIndex), func(t *testing.T) {
+			req := &discovery.DiscoveryRequest{
+				VersionInfo: "versionInfo",
+				Node: &core.Node{
+					Id:      "node-id",
+					Cluster: "node-cluster",
+				},
+				ResourceNames: kase.resourceNames,
+				TypeUrl:       "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+				ResponseNonce: "response-nonce",
 			}
+
+			got, err := getDiscoveryResponse(req, "versionInfo", certs, roots)
+			if kase.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
 			if got != nil {
 				got.Nonce = "nonce"
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getDiscoveryResponse() = %v, want %v", got, tt.want)
+
+			exp := &discovery.DiscoveryResponse{
+				VersionInfo: "versionInfo",
+				Resources: []*anypb.Any{
+					{
+						TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+						Value:   kase.value,
+					},
+				},
+				Canary:  false,
+				TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+				Nonce:   "nonce",
+				ControlPlane: &core.ControlPlane{
+					Identifier: fmt.Sprintf("Smallstep SDS/0000000-dev (%s/%s)", runtime.GOOS, runtime.GOARCH),
+				},
 			}
+
+			assert.Equal(t, exp, got)
 		})
 	}
 }
 
-func mustRootCAs() []*x509.Certificate {
+func rootCAs(t *testing.T) []*x509.Certificate {
+	t.Helper()
+
 	b, _ := pem.Decode([]byte(testRootCA))
 	cert, err := x509.ParseCertificate(b.Bytes)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	return []*x509.Certificate{cert}
 }
 
-func mustTLSCerts() []*tls.Certificate {
+func tlsCerts(t *testing.T) []*tls.Certificate {
+	t.Helper()
+
 	var b *pem.Block
 	cert := new(tls.Certificate)
 	b, _ = pem.Decode([]byte(testCert))
+
 	cert.Certificate = append(cert.Certificate, b.Bytes)
 	b, _ = pem.Decode([]byte(testIntermediateCert))
+
 	cert.Certificate = append(cert.Certificate, b.Bytes)
 	b, _ = pem.Decode([]byte(testCertKey))
+
 	key, err := x509.ParseECPrivateKey(b.Bytes)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	cert.PrivateKey = key
+
 	return []*tls.Certificate{cert}
 }
 
