@@ -106,7 +106,7 @@ generate:
 #########################################
 
 test:
-	$Q gotestsum -- -coverprofile coverage.out ./...
+	$Q gotestsum -- -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./...
 
 .PHONY: test
 

@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smallstep/cli/usage"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
 	"go.step.sm/cli-utils/command"
 	"go.step.sm/cli-utils/command/version"
 	"go.step.sm/cli-utils/step"
+	"go.step.sm/cli-utils/usage"
 
 	// Enabled commands
 	_ "github.com/smallstep/step-sds/commands"
