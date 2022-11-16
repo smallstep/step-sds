@@ -1,25 +1,27 @@
 package commands
 
 import (
+	"crypto"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/authority/provisioner"
 	"github.com/smallstep/certificates/pki"
-	"github.com/smallstep/cli/crypto/pemutil"
-	"github.com/smallstep/cli/crypto/x509util"
-	"github.com/smallstep/cli/utils"
 	"github.com/smallstep/step-sds/sds"
 	"github.com/urfave/cli"
 	"go.step.sm/cli-utils/command"
 	"go.step.sm/cli-utils/errs"
+	"go.step.sm/cli-utils/fileutil"
 	"go.step.sm/cli-utils/step"
 	"go.step.sm/cli-utils/ui"
+	"go.step.sm/crypto/keyutil"
+	"go.step.sm/crypto/minica"
+	"go.step.sm/crypto/pemutil"
+	"go.step.sm/crypto/x509util"
 )
 
 func init() {
@@ -120,47 +122,61 @@ func initAction(ctx *cli.Context) error {
 		return errors.Errorf("unsupported provisioner type %T", p)
 	}
 
-	// Generate root
-	rootProfile, err := x509util.NewRootProfile(name)
-	if err != nil {
-		return err
-	}
-	rootCrt, err := createWriteCertificate(rootProfile, "root_ca.crt", "root_ca_key", pass)
+	// Generate PKI
+	ca, err := minica.New(minica.WithName(name))
 	if err != nil {
 		return err
 	}
 
-	// Generate intermediate
-	interProfile, err := x509util.NewIntermediateProfile(name, rootCrt, rootProfile.SubjectPrivateKey())
-	if err != nil {
+	// Write root certificate
+	if err := createWriteCertificate(ca.Root, nil, ca.RootSigner, "root_ca.crt", "root_ca_key", pass); err != nil {
 		return err
 	}
-	interCrt, err := createWriteCertificate(interProfile, "intermediate_ca.crt", "intermediate_ca_key", pass)
-	if err != nil {
+
+	// Write intermediate
+	if err := createWriteCertificate(ca.Intermediate, nil, ca.Signer, "intermediate_ca.crt", "intermediate_ca_key", pass); err != nil {
 		return err
 	}
 
 	// Generate SDS server certificate
-	notBefore := time.Now()
-	notAfter := notBefore.Add(x509util.DefaultIntermediateCertValidity)
-	serverProfile, err := x509util.NewLeafProfile(serverName, interCrt, interProfile.SubjectPrivateKey(),
-		x509util.WithHosts(serverName), x509util.WithNotBeforeAfterDuration(notBefore, notAfter, 0))
+	signer, err := keyutil.GenerateDefaultSigner()
 	if err != nil {
 		return err
 	}
-	_, err = createWriteCertificate(serverProfile, "sds_server.crt", "sds_server_key", leafPass)
+	csr, err := x509util.CreateCertificateRequest(serverName, []string{serverName}, signer)
 	if err != nil {
+		return err
+	}
+	serverCert, err := ca.SignCSR(csr, minica.WithModifyFunc(func(c *x509.Certificate) error {
+		c.NotBefore = ca.Intermediate.NotBefore
+		c.NotAfter = ca.Intermediate.NotAfter
+		return nil
+	}))
+	if err != nil {
+		return err
+	}
+	if err := createWriteCertificate(serverCert, ca.Intermediate, signer, "sds_server.crt", "sds_server_key", leafPass); err != nil {
 		return err
 	}
 
 	// Generate SDS client certificate
-	clientProfile, err := x509util.NewLeafProfile(clientName, interCrt, interProfile.SubjectPrivateKey(),
-		x509util.WithNotBeforeAfterDuration(notBefore, notAfter, 0))
+	signer, err = keyutil.GenerateDefaultSigner()
 	if err != nil {
 		return err
 	}
-	clientCrt, err := createWriteCertificate(clientProfile, "sds_client.crt", "sds_client_key", leafPass)
+	csr, err = x509util.CreateCertificateRequest(serverName, []string{serverName}, signer)
 	if err != nil {
+		return err
+	}
+	clientCert, err := ca.SignCSR(csr, minica.WithModifyFunc(func(c *x509.Certificate) error {
+		c.NotBefore = ca.Intermediate.NotBefore
+		c.NotAfter = ca.Intermediate.NotAfter
+		return nil
+	}))
+	if err != nil {
+		return err
+	}
+	if err := createWriteCertificate(clientCert, ca.Intermediate, signer, "sds_client.crt", "sds_client_key", leafPass); err != nil {
 		return err
 	}
 
@@ -173,7 +189,7 @@ func initAction(ctx *cli.Context) error {
 		CertificateKey:        filepath.Join(base, "sds_server_key"),
 		Password:              "",
 		AuthorizedIdentity:    clientName,
-		AuthorizedFingerprint: x509util.Fingerprint(clientCrt),
+		AuthorizedFingerprint: x509util.Fingerprint(clientCert),
 		Provisioner: sds.ProvisionerConfig{
 			Issuer:   prov.Name,
 			KeyID:    prov.Key.KeyID,
@@ -189,7 +205,7 @@ func initAction(ctx *cli.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling %s", configFileName)
 	}
-	if err = utils.WriteFile(configFileName, b, 0666); err != nil {
+	if err = fileutil.WriteFile(configFileName, b, 0666); err != nil {
 		return errs.FileError(err, configFileName)
 	}
 
@@ -267,7 +283,7 @@ func initUDS(caURL, root string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling %s", configFileName)
 	}
-	if err = utils.WriteFile(configFileName, b, 0666); err != nil {
+	if err = fileutil.WriteFile(configFileName, b, 0666); err != nil {
 		return errs.FileError(err, configFileName)
 	}
 
@@ -280,41 +296,31 @@ func initUDS(caURL, root string) error {
 	return nil
 }
 
-func createWriteCertificate(profile x509util.Profile, certName, keyName string, password []byte) (*x509.Certificate, error) {
+func createWriteCertificate(cert, parent *x509.Certificate, priv crypto.PrivateKey, certName, keyName string, password []byte) error {
 	base := filepath.Join(step.Path(), "sds")
 	certName = filepath.Join(base, certName)
 	keyName = filepath.Join(base, keyName)
 
-	b, err := profile.CreateCertificate()
-	if err != nil {
-		return nil, err
-	}
-
 	bundle := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: b,
+		Bytes: cert.Raw,
 	})
-	if _, ok := profile.(*x509util.Leaf); ok {
+	if parent != nil {
 		issuer := pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
-			Bytes: profile.Issuer().Raw,
+			Bytes: parent.Raw,
 		})
 		bundle = append(bundle, issuer...)
 	}
-	if err := utils.WriteFile(certName, bundle, 0600); err != nil {
-		return nil, err
+	if err := fileutil.WriteFile(certName, bundle, 0600); err != nil {
+		return err
 	}
-	_, err = pemutil.Serialize(profile.SubjectPrivateKey(), pemutil.WithPassword(password), pemutil.ToFile(keyName, 0600))
+	_, err := pemutil.Serialize(priv, pemutil.WithPassword(password), pemutil.ToFile(keyName, 0600))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return err
 	}
 
-	crt, err := x509.ParseCertificate(b)
-	if err != nil {
-		return nil, errors.Wrap(err, "error parsing certificate")
-	}
-
-	return crt, nil
+	return nil
 }
 
 type provisionersSelect struct {

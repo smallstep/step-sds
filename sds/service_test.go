@@ -10,9 +10,12 @@ import (
 	"testing"
 	"time"
 
+	rpc "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -20,10 +23,7 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	secret "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	"github.com/smallstep/assert"
-	"github.com/smallstep/cli/crypto/x509util"
-	rpc "google.golang.org/genproto/googleapis/rpc/status"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/bufconn"
+	"go.step.sm/crypto/x509util"
 )
 
 /*

@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/api"
 	"github.com/smallstep/certificates/ca"
-	"github.com/smallstep/cli/jose"
+	"go.step.sm/crypto/jose"
 	"golang.org/x/net/http2"
 )
 
