@@ -9,7 +9,7 @@ require (
 	github.com/rs/xid v1.4.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
-	github.com/smallstep/certificates v0.23.1
+	github.com/smallstep/certificates v0.23.2
 	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli v1.22.12
 	go.step.sm/cli-utils v0.7.5
@@ -65,7 +65,7 @@ require (
 	github.com/micromdm/scep/v2 v2.1.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/newrelic/go-agent/v3 v3.20.2 // indirect
+	github.com/newrelic/go-agent/v3 v3.20.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
