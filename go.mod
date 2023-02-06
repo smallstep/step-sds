@@ -3,7 +3,7 @@ module github.com/smallstep/step-sds
 go 1.18
 
 require (
-	github.com/envoyproxy/go-control-plane v0.10.3
+	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/xid v1.4.0
@@ -37,7 +37,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/envoyproxy/protoc-gen-validate v0.6.7 // indirect
+	github.com/envoyproxy/protoc-gen-validate v0.9.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
