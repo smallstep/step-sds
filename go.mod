@@ -1,6 +1,6 @@
 module github.com/smallstep/step-sds
 
-go 1.18
+go 1.19
 
 require (
 	github.com/envoyproxy/go-control-plane v0.11.0
