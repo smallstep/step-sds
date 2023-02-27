@@ -9,13 +9,11 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"math"
 	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -169,7 +167,7 @@ func Test_getDiscoveryResponse(t *testing.T) {
 				TypeUrl: "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
 				Nonce:   "nonce",
 				ControlPlane: &core.ControlPlane{
-					Identifier: fmt.Sprintf("Smallstep SDS/0000000-dev (%s/%s)", runtime.GOOS, runtime.GOARCH),
+					Identifier: Identifier,
 				},
 			}
 
