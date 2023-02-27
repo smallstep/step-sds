@@ -81,7 +81,6 @@ This documentation is available online at https://github.com/smallstep/step-sds
 func init() {
 	step.Set("Smallstep SDS", Version, BuildTime)
 	sds.Identifier = step.Version()
-	//nolint:staticcheck // deprecated in Go 1.20 - leaving because we support latest 2 versions of golang
 	rand.Seed(time.Now().UnixNano())
 }
 
