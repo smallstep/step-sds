@@ -13,9 +13,9 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli v1.22.12
 	go.step.sm/cli-utils v0.7.5
-	go.step.sm/crypto v0.26.0
+	go.step.sm/crypto v0.27.0
 	golang.org/x/net v0.8.0
-	google.golang.org/genproto v0.0.0-20230209215440-0dfe4f8abfcc
+	google.golang.org/genproto v0.0.0-20230303212802-e74f57abe488
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.29.1
 )
@@ -78,7 +78,7 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.step.sm/linkedca v0.19.0 // indirect
-	golang.org/x/crypto v0.6.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
