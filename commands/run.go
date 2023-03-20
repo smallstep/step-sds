@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/pkg/errors"
 	"github.com/smallstep/certificates/ca"
 	"github.com/smallstep/step-sds/logging"
@@ -125,8 +124,8 @@ func runAction(ctx *cli.Context) error {
 
 	// Start gRPC server
 	opts := []grpc.ServerOption{
-		grpc_middleware.WithUnaryServerChain(logging.UnaryServerInterceptor(logger)),
-		grpc_middleware.WithStreamServerChain(logging.StreamServerInterceptor(logger)),
+		grpc.ChainUnaryInterceptor(logging.UnaryServerInterceptor(logger)),
+		grpc.ChainStreamInterceptor(logging.StreamServerInterceptor(logger)),
 	}
 
 	if c.IsTCP() {
