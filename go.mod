@@ -16,7 +16,7 @@ require (
 	go.step.sm/crypto v0.27.0
 	golang.org/x/net v0.8.0
 	google.golang.org/genproto v0.0.0-20230303212802-e74f57abe488
-	google.golang.org/grpc v1.53.0
+	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.30.0
 )
 
