@@ -13,7 +13,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli v1.22.12
 	go.step.sm/cli-utils v0.7.5
-	go.step.sm/crypto v0.28.0
+	go.step.sm/crypto v0.29.0
 	golang.org/x/net v0.8.0
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4
 	google.golang.org/grpc v1.54.0
