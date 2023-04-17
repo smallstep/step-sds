@@ -12,7 +12,7 @@ require (
 	github.com/smallstep/certificates v0.23.2
 	github.com/stretchr/testify v1.8.2
 	github.com/urfave/cli v1.22.12
-	go.step.sm/cli-utils v0.7.5
+	go.step.sm/cli-utils v0.7.6
 	go.step.sm/crypto v0.29.0
 	golang.org/x/net v0.9.0
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4
@@ -28,7 +28,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
+	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20230105202645-06c439db220b // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -67,7 +67,6 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/newrelic/go-agent/v3 v3.20.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
