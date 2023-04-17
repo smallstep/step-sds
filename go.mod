@@ -6,7 +6,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/xid v1.4.0
+	github.com/rs/xid v1.5.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
 	github.com/smallstep/certificates v0.23.2
