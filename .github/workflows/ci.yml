@@ -17,5 +17,4 @@ jobs:
   ci:
     uses: smallstep/workflows/.github/workflows/goCI.yml@main
     with:
-      run-gitleaks: true
       run-codeql: true
