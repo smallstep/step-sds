@@ -101,7 +101,7 @@ func panicHandler() {
 }
 
 func main() {
-	// initialize step environment.
+	// Initialize step environment.
 	if err := step.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
