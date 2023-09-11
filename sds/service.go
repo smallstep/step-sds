@@ -89,7 +89,7 @@ func (srv *Service) Register(s *grpc.Server) {
 	secret.RegisterSecretDiscoveryServiceServer(s, srv)
 }
 
-func (srv *Service) DeltaSecrets(sds secret.SecretDiscoveryService_DeltaSecretsServer) (err error) {
+func (srv *Service) DeltaSecrets(_ secret.SecretDiscoveryService_DeltaSecretsServer) (err error) {
 	return errors.New("method DeltaSecrets not implemented")
 }
 
@@ -248,7 +248,7 @@ func (srv *Service) FetchSecrets(ctx context.Context, r *discovery.DiscoveryRequ
 	return getDiscoveryResponse(r, versionInfo, certs, roots)
 }
 
-func (srv *Service) validateRequest(ctx context.Context, r *discovery.DiscoveryRequest) error {
+func (srv *Service) validateRequest(ctx context.Context, _ *discovery.DiscoveryRequest) error {
 	if !srv.isTCP {
 		return nil
 	}

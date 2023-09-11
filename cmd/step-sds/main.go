@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"reflect"
@@ -81,7 +80,6 @@ This documentation is available online at https://github.com/smallstep/step-sds
 func init() {
 	step.Set("Smallstep SDS", Version, BuildTime)
 	sds.Identifier = step.Version()
-	rand.Seed(time.Now().UnixNano())
 }
 
 func panicHandler() {
