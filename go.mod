@@ -14,7 +14,7 @@ require (
 	github.com/urfave/cli v1.22.14
 	go.step.sm/cli-utils v0.8.0
 	go.step.sm/crypto v0.37.0
-	golang.org/x/net v0.18.0
+	golang.org/x/net v0.19.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231030173426-d783a09b4405
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
@@ -84,9 +84,9 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.step.sm/linkedca v0.20.1 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20230310171629-522b1b587ee0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
