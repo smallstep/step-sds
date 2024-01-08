@@ -3,7 +3,7 @@ module github.com/smallstep/step-sds
 go 1.20
 
 require (
-	github.com/envoyproxy/go-control-plane v0.11.1
+	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/xid v1.5.0
