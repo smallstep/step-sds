@@ -12,7 +12,7 @@ require (
 	github.com/smallstep/certificates v0.25.3-rc6
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli v1.22.14
-	go.step.sm/cli-utils v0.8.0
+	go.step.sm/cli-utils v0.9.0
 	go.step.sm/crypto v0.43.1
 	golang.org/x/net v0.22.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014
