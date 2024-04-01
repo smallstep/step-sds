@@ -13,9 +13,9 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli v1.22.14
 	go.step.sm/cli-utils v0.9.0
-	go.step.sm/crypto v0.44.1
+	go.step.sm/crypto v0.44.2
 	golang.org/x/net v0.22.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311132316-a219d84964c2
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
 )
