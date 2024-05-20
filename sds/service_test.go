@@ -134,11 +134,10 @@ func TestService_StreamSecrets(t *testing.T) {
 	}()
 
 	// Prepare client
-	ctx := context.Background()
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
@@ -306,11 +305,10 @@ func TestService_FetchSecrets(t *testing.T) {
 	}()
 
 	// Prepare client
-	ctx := context.Background()
 	dialer := func(ctx context.Context, s string) (net.Conn, error) {
 		return lis.Dial()
 	}
-	conn, err := grpc.DialContext(ctx, "bufconn", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost", grpc.WithContextDialer(dialer), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatalf("Failed to dial bufconn: %v", err)
 	}
