@@ -16,7 +16,7 @@ require (
 	go.step.sm/crypto v0.45.0
 	golang.org/x/net v0.25.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6
-	google.golang.org/grpc v1.63.2
+	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.1
 )
 
@@ -30,7 +30,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
-	github.com/cncf/xds/go v0.0.0-20231128003011-0fa0005c9caa // indirect
+	github.com/cncf/xds/go v0.0.0-20240318125728-8a4994d93e50 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
