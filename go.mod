@@ -9,7 +9,7 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
-	github.com/smallstep/certificates v0.26.1
+	github.com/smallstep/certificates v0.26.2
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli v1.22.15
 	go.step.sm/cli-utils v0.9.0
@@ -70,9 +70,9 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/newrelic/go-agent/v3 v3.32.0 // indirect
+	github.com/newrelic/go-agent/v3 v3.33.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
@@ -81,13 +81,13 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/slackhq/nebula v1.6.1 // indirect
 	github.com/smallstep/go-attestation v0.4.4-0.20240109183208-413678f90935 // indirect
-	github.com/smallstep/nosql v0.6.0 // indirect
+	github.com/smallstep/nosql v0.6.1 // indirect
 	github.com/smallstep/pkcs7 v0.0.0-20231024181729-3b98ecc1ca81 // indirect
 	github.com/smallstep/scep v0.0.0-20231024192529-aee96d7ad34d // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/bbolt v1.3.7 // indirect
-	go.step.sm/linkedca v0.20.1 // indirect
+	go.etcd.io/bbolt v1.3.9 // indirect
+	go.step.sm/linkedca v0.21.1 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
 	golang.org/x/sys v0.21.0 // indirect
