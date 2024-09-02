@@ -1,6 +1,6 @@
 module github.com/smallstep/step-sds
 
-go 1.21
+go 1.22
 
 require (
 	github.com/envoyproxy/go-control-plane v0.13.0
@@ -13,9 +13,9 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli v1.22.15
 	go.step.sm/cli-utils v0.9.0
-	go.step.sm/crypto v0.51.1
+	go.step.sm/crypto v0.51.2
 	golang.org/x/net v0.28.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240722135656-d784300faade
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142
 	google.golang.org/grpc v1.66.0
 	google.golang.org/protobuf v1.34.2
 )
@@ -50,7 +50,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.6 // indirect
-	github.com/google/go-tpm v0.9.0 // indirect
+	github.com/google/go-tpm v0.9.1 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
@@ -88,8 +88,8 @@ require (
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
