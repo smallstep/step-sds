@@ -2,8 +2,6 @@ module github.com/smallstep/step-sds
 
 go 1.22.0
 
-toolchain go1.22.5
-
 require (
 	github.com/envoyproxy/go-control-plane v0.13.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
