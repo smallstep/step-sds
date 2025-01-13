@@ -1,6 +1,7 @@
 module github.com/smallstep/step-sds
 
 go 1.22.0
+
 toolchain go1.22.10
 
 require (
@@ -17,7 +18,7 @@ require (
 	go.step.sm/crypto v0.56.0
 	golang.org/x/net v0.33.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241206012308-a4fef0638583
-	google.golang.org/grpc v1.69.2
+	google.golang.org/grpc v1.69.4
 	google.golang.org/protobuf v1.36.1
 )
 
