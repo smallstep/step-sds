@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.10
 
 require (
-	github.com/envoyproxy/go-control-plane/envoy v1.32.3
+	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/xid v1.6.0
@@ -42,7 +42,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-chi/chi/v5 v5.1.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
