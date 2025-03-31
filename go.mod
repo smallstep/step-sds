@@ -2,6 +2,8 @@ module github.com/smallstep/step-sds
 
 go 1.23.6
 
+toolchain go1.24.1
+
 require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -13,9 +15,9 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli v1.22.16
 	go.step.sm/cli-utils v0.9.0
-	go.step.sm/crypto v0.59.1
+	go.step.sm/crypto v0.60.0
 	golang.org/x/net v0.37.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4
 	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.6
 )
