@@ -140,7 +140,7 @@ func newEntryForCall(ctx context.Context, entry *logrus.Entry, fullMethodString,
 	return WithRequestEntry(ctx, callLog)
 }
 
-//nolint:revive // despite unused inputs, they serve as documentation.
+// despite unused inputs, they serve as documentation.
 func writeLog(ctx context.Context, _ *logrus.Logger, typ interceptorType, requestID, fullMethod, startTime string, duration time.Duration, grpcErr error) {
 	code := status.Code(grpcErr)
 
