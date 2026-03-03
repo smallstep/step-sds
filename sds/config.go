@@ -14,7 +14,7 @@ type Config struct {
 	Root                  string            `json:"root,omitempty"`
 	Certificate           string            `json:"crt,omitempty"`
 	CertificateKey        string            `json:"key,omitempty"`
-	Password              string            `json:"password,omitempty"`
+	Password              string            `json:"password,omitempty"` // #nosec G117 -- JSON property for (un)marshaling
 	AuthorizedIdentity    string            `json:"authorizedIdentity"`
 	AuthorizedFingerprint string            `json:"authorizedFingerprint"`
 	Provisioner           ProvisionerConfig `json:"provisioner"`
@@ -59,7 +59,7 @@ func (c Config) Validate() error {
 type ProvisionerConfig struct {
 	Issuer   string `json:"issuer"`
 	KeyID    string `json:"kid"`
-	Password string `json:"password,omitempty"`
+	Password string `json:"password,omitempty"` // #nosec G117 -- JSON property for (un)marshaling
 	CaURL    string `json:"ca-url"`
 	CaRoot   string `json:"root"`
 }

@@ -1,6 +1,6 @@
 module github.com/smallstep/step-sds
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0
@@ -14,7 +14,7 @@ require (
 	github.com/urfave/cli v1.22.17
 	go.step.sm/cli-utils v0.9.0
 	go.step.sm/crypto v0.76.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
