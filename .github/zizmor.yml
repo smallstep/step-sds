@@ -10,5 +10,8 @@ rules:
   dangerous-triggers:
     ignore:
       - triage.yml
+  archived-uses:
+    ignore:
+      - release.yml
   dependabot-cooldown:
     disable: true
