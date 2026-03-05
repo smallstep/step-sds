@@ -10,3 +10,5 @@ rules:
   dangerous-triggers:
     ignore:
       - triage.yml
+  dependabot-cooldown:
+    disable: true
