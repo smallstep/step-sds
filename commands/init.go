@@ -201,7 +201,7 @@ func initAction(ctx *cli.Context) error {
 	}
 
 	configFileName := filepath.Join(configBase, "sds.json")
-	b, err := json.MarshalIndent(sdsConfig, "", "   ")
+	b, err := json.MarshalIndent(sdsConfig, "", "   ") // #nosec G117 -- password field is empty
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling %s", configFileName)
 	}
@@ -279,7 +279,7 @@ func initUDS(caURL, root string) error {
 	}
 
 	configFileName := filepath.Join(configBase, "sds.json")
-	b, err := json.MarshalIndent(sdsConfig, "", "   ")
+	b, err := json.MarshalIndent(sdsConfig, "", "   ") // #nosec G117 -- password field is empty
 	if err != nil {
 		return errors.Wrapf(err, "error marshaling %s", configFileName)
 	}

@@ -6,6 +6,9 @@ on:
     tags:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     uses: smallstep/step-sds/.github/workflows/ci.yml@master
@@ -14,6 +17,8 @@ jobs:
   create_release:
     name: Create Release
     needs: ci
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     env:
       DOCKER_IMAGE: smallstep/step-sds
@@ -25,9 +30,11 @@ jobs:
     steps:
       - name: Is Pre-release
         id: is_prerelease
+        env:
+          REF: ${{ github.ref }}
         run: |
           set +e
-          echo ${{ github.ref }} | grep "\-rc.*"
+          echo "${REF}" | grep "\-rc.*"
           OUT=$?
           if [ $OUT -eq 0 ]; then IS_PRERELEASE=true; else IS_PRERELEASE=false; fi
           echo "IS_PRERELEASE=${IS_PRERELEASE}" >> "${GITHUB_OUTPUT}"
@@ -45,7 +52,7 @@ jobs:
           echo "DOCKER_TAGS=${{ env.DOCKER_TAGS }},${{ env.DOCKER_IMAGE }}:latest" >> "${GITHUB_ENV}"
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

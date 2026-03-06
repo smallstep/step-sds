@@ -1,0 +1,17 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "smallstep/*": ref-pin
+  secrets-inherit:
+    disable: true
+  ref-confusion:
+    disable: true
+  dangerous-triggers:
+    ignore:
+      - triage.yml
+  archived-uses:
+    ignore:
+      - release.yml
+  dependabot-cooldown:
+    disable: true
