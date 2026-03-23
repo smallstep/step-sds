@@ -9,7 +9,7 @@ require (
 	github.com/rs/xid v1.6.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/smallstep/assert v0.0.0-20200723003110-82e2b9b3b262
-	github.com/smallstep/certificates v0.30.0
+	github.com/smallstep/certificates v0.30.2
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli v1.22.17
 	go.step.sm/cli-utils v0.9.0
