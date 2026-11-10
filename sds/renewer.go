@@ -13,7 +13,6 @@ import (
 	"github.com/smallstep/certificates/api"
 	"github.com/smallstep/certificates/ca"
 	"go.step.sm/crypto/jose"
-	"golang.org/x/net/http2"
 )
 
 type secrets struct {
@@ -240,14 +239,12 @@ func getDefaultTransport(tlsConfig *tls.Config) (*http.Transport, error) {
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
+		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		TLSClientConfig:       tlsConfig,
-	}
-	if err := http2.ConfigureTransport(tr); err != nil {
-		return nil, errors.Wrap(err, "error configuring transport")
 	}
 	return tr, nil
 }
